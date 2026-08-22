@@ -1,0 +1,52 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NPAAEFVT5BFDQKNPEQR2BW",
+  "session_id": "01a029a9-c97c-7062-b5bf-385c23a6804b",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-22T21:34:07.1905256Z",
+  "branch": "dan",
+  "checkpoints_count": 2,
+  "save_step_count": 1,
+  "files_touched": [],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "cdf3956097fe",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 6006,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 38144,
+    "output_tokens": 184,
+    "api_call_count": 3
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 173,
+      "user_lines_removed": 1,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.json": 84,
+        ".codex/hooks.json": 88,
+        "README.md": 1
+      },
+      "user_removed_per_file": {
+        "README.md": 1
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 1000,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "trajectories_v1_01.jsonl": 1000
+      }
+    }
+  ]
+}
