@@ -58,9 +58,12 @@ least squares; then it projects the result onto the partial order of head-to-hea
 dominance, so a model that beat another on every shared benchmark can never be ranked
 below it. Fitted ability becomes a quantile of the **training-split** complexity
 distribution, with a safety margin that widens where evidence is thin.
-`route_score()` / `route_trajectory()` then pick the cheapest model whose cutoff covers a
-request. Section 5 of `notebooks/complexity_pipeline.ipynb` walks the chain, including a
-`risk_aversion` sweep that traces a cost-quality frontier.
+`route_score()` / `route_trajectory()` then pick the **weakest** model whose cutoff covers a
+request, resolved at tier granularity so a model the benchmarks cannot distinguish from a
+better-evidenced one is never preferred. Selection is capability-only: prices are recorded
+on each model card but never consulted, so this supplies the quality axis of a cost-quality
+frontier rather than the frontier itself. Section 5 of
+`notebooks/complexity_pipeline.ipynb` walks the chain, including a `risk_aversion` sweep.
 
 Two findings worth knowing before you use it:
 
@@ -68,12 +71,12 @@ Two findings worth knowing before you use it:
   `scripts/pricing.json` matches each one's public list price to the cent -- including
   `gpt-5.6-sol`/`terra`/`luna`, which are OpenAI's real tier names.
 - **The logged policy is not complexity-aware** (correlation between a request's
-  complexity and its serving model's fitted capability is +0.02). That is the headroom a
+  complexity and its serving model's fitted capability is +0.03). That is the headroom a
   router is competing for -- and the reason the log says little about which model a hard
   request actually needs.
 - **The top five models are not separable** by these benchmarks: they fall inside one
-  2.7-point detectability band spanning a 50x price range. Within a band the ordering is
-  noise, so route on price (`snap_to_band=True`), not on fitted capability.
+  2.7-point detectability band. Within a band the ordering is noise, so the members are
+  treated as interchangeable (`snap_to_band=True`) rather than silently ranked.
 
 Limitations are recorded in `scripts/model_catalog.py` and printed by the notebook.
 

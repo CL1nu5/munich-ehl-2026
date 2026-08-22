@@ -279,11 +279,50 @@ class RoutingTests(unittest.TestCase):
         self.catalog = build_catalog(SCORES, cards=PANEL)
         self.by_id = {m["model_id"]: m for m in self.catalog["models"]}
 
-    def test_easy_work_goes_to_the_cheapest_covering_model(self):
+    def test_easy_work_goes_to_the_weakest_sufficient_model(self):
         model, reason = route_score(min(SCORES), self.catalog)
         self.assertEqual(reason, "covered")
-        cheapest = min(self.catalog["models"], key=lambda m: m["price_in_per_mtok"])
-        self.assertEqual(model, cheapest["model_id"])
+        weakest = min(self.catalog["models"], key=lambda m: m["expected_score"])
+        self.assertEqual(model, weakest["model_id"])
+
+    def test_selection_ignores_price(self):
+        """Selection is capability-only, so making the strongest model also the
+        cheapest must not attract easy work to it."""
+        strong_and_cheap = ModelCard("strong_cheap", "f", "1", "t", 0.01, 0.001, 0.05,
+                                     observations=[
+            Observation("terminal_bench_2_1", 95.0, "t"),
+            Observation("swe_bench_pro", 90.0, "t"),
+        ])
+        weak_and_dear = ModelCard("weak_dear", "f", "1", "t", 99.0, 9.9, 495.0,
+                                  observations=[
+            Observation("terminal_bench_2_1", 55.0, "t"),
+            Observation("swe_bench_pro", 40.0, "t"),
+        ])
+        catalog = build_catalog(SCORES, cards=[strong_and_cheap, weak_and_dear])
+        model, reason = route_score(min(SCORES), catalog)
+        self.assertEqual(reason, "covered")
+        self.assertEqual(model, "weak_dear",
+                         "router chose the strongest model for the easiest request; "
+                         "price appears to be leaking back into selection")
+
+    def test_ranking_is_unchanged_by_price(self):
+        """Rewriting every price must not move a single fitted score or cutoff."""
+        import copy
+
+        repriced = []
+        for card in copy.deepcopy(PANEL):
+            card.price_in, card.price_cached, card.price_out = 42.0, 4.2, 210.0
+            repriced.append(card)
+        rebuilt = build_catalog(SCORES, cards=repriced)
+
+        baseline = {m["model_id"]: (m["expected_score"], m["complexity_cutoff"])
+                    for m in self.catalog["models"]}
+        for entry in rebuilt["models"]:
+            self.assertEqual(baseline[entry["model_id"]],
+                             (entry["expected_score"], entry["complexity_cutoff"]))
+        self.assertEqual([m["model_id"] for m in rebuilt["models"]],
+                         [m["model_id"] for m in self.catalog["models"]],
+                         "catalog ordering changed when only prices changed")
 
     def test_work_above_every_cutoff_falls_back_to_the_frontier(self):
         model, reason = route_score(max(SCORES) + 10, self.catalog)
@@ -299,6 +338,42 @@ class RoutingTests(unittest.TestCase):
     def test_restricting_candidates_is_respected(self):
         model, _ = route_score(min(SCORES), self.catalog, allowed=["broad"])
         self.assertEqual(model, "broad")
+
+    def test_an_unevidenced_model_is_not_preferred_over_its_tier_peer(self):
+        """Within a detectability band the ability ordering is noise, so the router must
+        not hand work to a model with no public evidence just because its imputed score
+        is nominally lower."""
+        evidenced = ModelCard("evidenced", "f", "1", "t", 5.0, 0.5, 25.0, observations=[
+            Observation("terminal_bench_2_1", 75.0, "t"),
+            Observation("swe_bench_pro", 69.0, "t"),
+        ])
+        ghost = ModelCard("ghost", "f", "0", "t", 5.0, 0.5, 25.0,
+                          imputed_from="evidenced", imputation_penalty=0.04)
+        floor = ModelCard("floor", "f", "1", "t", 1.0, 0.1, 5.0, observations=[
+            Observation("terminal_bench_2_1", 40.0, "t"),
+            Observation("swe_bench_pro", 30.0, "t"),
+        ])
+        # Pin the band so the fixture does not depend on the residual-derived default.
+        catalog = build_catalog(SCORES, cards=[evidenced, ghost, floor], tie_band=5.0)
+        by_id = {m["model_id"]: m for m in catalog["models"]}
+        self.assertEqual(by_id["ghost"]["tier_group"], by_id["evidenced"]["tier_group"],
+                         "fixture expects the imputed model to share a tier")
+        self.assertLess(by_id["ghost"]["expected_score"],
+                        by_id["evidenced"]["expected_score"])
+
+        chosen, _ = route_score(by_id["ghost"]["complexity_cutoff"], catalog)
+        self.assertEqual(chosen, "evidenced",
+                         "router preferred the model with zero public evidence")
+
+    def test_selection_is_deterministic_across_tied_models(self):
+        """`broad` and `twin` tie on ability by construction; the winner must not
+        depend on dict or list ordering."""
+        import copy
+
+        first = route_score(min(SCORES), build_catalog(SCORES, cards=PANEL))
+        second = route_score(min(SCORES),
+                             build_catalog(SCORES, cards=list(reversed(copy.deepcopy(PANEL)))))
+        self.assertEqual(first, second)
 
     def test_trajectory_is_routed_by_its_hardest_call(self):
         calls = [min(SCORES), min(SCORES), max(SCORES)]

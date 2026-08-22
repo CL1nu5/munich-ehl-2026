@@ -591,11 +591,12 @@ def build_catalog(
     span = hi_exp - lo_exp
 
     # Ties on fitted ability are real (see the dominance repair in fit_capability), so
-    # break them deterministically: best-corroborated first, then cheapest.
+    # break them deterministically on evidence, then on id. Price is deliberately not a
+    # tie-breaker: selection in this catalog is capability-only.
     frontier_id = max(
         (c for c in cards if caps[c.model_id]["expected_score"] is not None),
         key=lambda c: (caps[c.model_id]["expected_score"],
-                       caps[c.model_id]["coverage"], -c.price_in),
+                       caps[c.model_id]["coverage"], c.model_id),
     ).model_id
 
     entries = []
@@ -637,13 +638,14 @@ def build_catalog(
             "observations": [asdict(o) for o in card.observations],
         })
 
-    entries.sort(key=lambda e: (-(e["expected_score"] or 0.0), e["price_in_per_mtok"]))
+    entries.sort(key=lambda e: (-(e["expected_score"] or 0.0),
+                                -e["evidence_coverage"], e["model_id"]))
 
     band = recommended_tie_band(fit) if tie_band is None else tie_band
     _assign_tiers(entries, band)
     if snap_to_band:
         # Within a tier the ordering is noise, so every member inherits the tier's
-        # highest cutoff and the router separates them on price alone.
+        # highest cutoff and they become fully interchangeable for routing.
         for tier in {e["tier_group"] for e in entries if e["tier_group"]}:
             members = [e for e in entries if e["tier_group"] == tier]
             top = max(m["complexity_cutoff"] for m in members)
@@ -677,16 +679,35 @@ def build_catalog(
 # Routing
 # --------------------------------------------------------------------------------------
 
-def _price_key(entry: dict) -> tuple:
-    # Rank by uncached input price: that is what cost_model.py actually bills, because
-    # the export has no outputs and output cost is therefore excluded everywhere.
-    return (entry["price_in_per_mtok"], entry["price_cached_per_mtok"],
-            entry["price_out_per_mtok"], -(entry["expected_score"] or 0.0))
+def _sufficiency_key(entry: dict) -> tuple:
+    """Order covering candidates by how little capability they over-provide.
+
+    Selection in this catalog is capability-only -- price plays no part in it. Among the
+    models whose cutoff covers a request, the weakest sufficient one is chosen: routing
+    is about not over-provisioning intelligence, and a cheapest-that-covers rule would
+    smuggle a cost objective back into what is meant to be an intelligence judgement.
+
+    "Weakest" is resolved at TIER granularity, not on the raw fitted score. Within a
+    detectability band the ordering is noise (that is what the band means), so preferring
+    the nominally-weakest member would be fitting noise -- and it would systematically
+    hand work to the least-corroborated models, since a thin evidence base both lowers a
+    model's cutoff and leaves its ability estimate free to drift downward. Ranking by
+    tier first and evidence coverage second means the weakest *distinguishable* tier
+    wins, and inside it the best-corroborated model does. Model id breaks residual ties
+    so the result never depends on input ordering.
+    """
+    return (-(entry.get("tier_group") or 0),
+            -entry["evidence_coverage"],
+            entry["model_id"])
 
 
 def route_score(complexity_score: float, catalog: dict,
                 allowed: Sequence[str] | None = None) -> tuple[str, str]:
-    """Cheapest catalogued model whose cutoff covers this complexity score.
+    """Weakest catalogued model whose cutoff still covers this complexity score.
+
+    Capability-only: prices are recorded on each model card but are not consulted here.
+    The rule is "do not send a request to a model stronger than it needs", which is the
+    intelligence analogue of a cheapest-that-covers rule and carries no cost objective.
 
     Returns (model_id, reason). When no model's cutoff reaches the score, the frontier
     model is returned with reason 'fallback_frontier' -- an explicit escape hatch rather
@@ -701,7 +722,7 @@ def route_score(complexity_score: float, catalog: dict,
 
     covering = [m for m in models if complexity_score <= m["complexity_cutoff"]]
     if covering:
-        return min(covering, key=_price_key)["model_id"], "covered"
+        return min(covering, key=_sufficiency_key)["model_id"], "covered"
     frontier = max(models, key=lambda m: m["expected_score"] or 0.0)
     return frontier["model_id"], "fallback_frontier"
 
@@ -739,11 +760,14 @@ LIMITATIONS = [
     "with each other (Fable 5 Terminal-Bench: 80.5 / 86.0 / 88.0), and secondary "
     "aggregators contradict each other on Sonnet 5's SWE-bench Verified badly enough "
     "that the benchmark was left out of its record rather than guessed.",
-    "The catalog ranks by input price only, because the export has no outputs and the "
-    "cost model excludes output tokens. A model with a high output price (Sol at $30/M) "
-    "is therefore ranked more cheaply than a full accounting would rank it.",
-    "claude-sonnet-5 is priced at its $2/$10 introductory rate, which expires "
-    "2026-08-31. Every saving attributed to it shrinks when list price resumes.",
+    "Selection is capability-only: prices are recorded on each model card but never "
+    "consulted when ranking or routing. The router picks the weakest model that still "
+    "covers a request, so it minimises over-provisioned intelligence, not spend. Two "
+    "models the benchmarks cannot separate are interchangeable here even when one costs "
+    "50x the other -- reintroduce a cost term if that is not what you want.",
+    "Because nothing in this catalog optimises cost, it cannot on its own produce the "
+    "cost-quality frontier the challenge asks for as a headline artifact. It supplies "
+    "the quality axis; the cost axis has to come from scripts/cost_model.py.",
 ]
 
 
@@ -775,16 +799,17 @@ def main() -> None:
     width = max(len(m["model_id"]) for m in catalog["models"])
     print(f"calibrated on {catalog['calibrated_on']['n_requests']} train requests "
           f"(risk_aversion={args.risk_aversion})")
-    print(f"{'model':<{width}}  {'$in':>6}  {'exp':>6}  {'naive':>6}  {'evid':>5}  {'cutoff':>6}")
+    print(f"{'model':<{width}}  {'exp':>6}  {'naive':>6}  {'evid':>5}  {'cutoff':>6}")
     for m in catalog["models"]:
         exp = "   n/a" if m["expected_score"] is None else f"{m['expected_score']:6.2f}"
         naive = "   n/a" if m["naive_composite"] is None else f"{m['naive_composite']:6.3f}"
         flag = " *" if m["is_frontier"] else ("  ~" if m["imputed"] else "")
-        print(f"{m['model_id']:<{width}}  {m['price_in_per_mtok']:>6.2f}  {exp}  {naive}  "
+        print(f"{m['model_id']:<{width}}  {exp}  {naive}  "
               f"{m['evidence_coverage']:>5.2f}  {m['complexity_cutoff']:>6.2f}{flag}")
     print("exp = fitted expected score on a panel-average benchmark (used for cutoffs)")
     print("naive = coverage-biased composite, shown only for contrast")
     print("* frontier (routing fallback)   ~ imputed, no public evidence")
+    print("selection is capability-only; prices are recorded but never consulted")
     print(f"wrote {out}")
 
 
