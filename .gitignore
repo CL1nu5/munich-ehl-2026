@@ -4,5 +4,6 @@ team/checkpoints/
 submission/
 *.zip
 __pycache__/
+model/*.pt
 *.tar.gz
 .venv
