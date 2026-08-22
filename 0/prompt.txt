@@ -1,0 +1,9 @@
+how do I add codex and gemini (antigrvity) cli to wnriew?
+
+---
+
+how do I add codex and gemini (antigrvity) cli to entire (claude code is allready connected)?
+
+---
+
+push my uv init to the github
