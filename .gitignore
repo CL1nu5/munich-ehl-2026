@@ -3,5 +3,6 @@ results/
 submission/
 *.zip
 __pycache__/
+model/*.pt
 *.tar.gz
 .venv
