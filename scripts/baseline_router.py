@@ -11,11 +11,10 @@ from pathlib import Path
 from load_trajectories import iter_requests, group_trajectories, est_tokens
 from cost_model import trajectory_cost, logged_route, load_pricing
 
-# Cheaper sibling per family. Anonymized ids: within claude, sonnet is assumed the
-# mid tier and fable the small tier; the gpt-5.6 variants (sol/terra/luna) have no
-# published tier order. ASSUMPTION — check the reconstructed traces (e.g. which model
-# gets long-context work) before trusting it.
-CHEAP = {"claude": "claude-fable-5", "gpt": "gpt-5.6-sol"}
+# Cheaper sibling per family, per scripts/pricing.json (official prices): claude-fable-5
+# is the most expensive claude model, so route to claude-sonnet-5 instead; gpt-5.6-luna
+# is the cheapest gpt model.
+CHEAP = {"claude": "claude-sonnet-5", "gpt": "gpt-5.6-luna"}
 
 def cheap_for(model):
     return CHEAP["claude"] if model.startswith("claude") else CHEAP["gpt"]
