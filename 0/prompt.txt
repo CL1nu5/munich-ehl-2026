@@ -1,0 +1,5 @@
+Implement a section to the notbook, where it creats a clataloug for the different models, based on public benchmark data, on how the quality score should cutoff on them
+
+---
+
+ok it dosn't seem right, that terra is better than sol look into the calculatin of the diferent models and check if it is good
