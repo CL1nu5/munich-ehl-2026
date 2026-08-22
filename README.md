@@ -26,6 +26,22 @@ python scripts/plot_frontier.py results/routes.jsonl
 
 Python 3.10+, standard library only (matplotlib optional for the PNG).
 
+## Complexity training dataset
+
+Build leakage-safe train, validation, and test files with transparent prompt and
+observed-execution complexity scores:
+
+```bash
+python scripts/build_complexity_dataset.py export/
+```
+
+Outputs are written to the gitignored `results/complexity_dataset/` directory.
+Each split has aligned `*_inputs.jsonl`, `*_targets.jsonl`, and
+`*_metadata.jsonl` files. Related exact-prefix requests and semantic
+near-duplicate prompts are always assigned to the same split. All scaling and
+normalization is fitted on training rows only. The complete walkthrough and an
+optional TF–IDF baseline are in `notebooks/complexity_pipeline.ipynb`.
+
 ## Using a coding agent
 
 Point Claude Code / Codex / Cursor / opencode at this repo — `AGENTS.md` briefs your agent.
