@@ -26,6 +26,60 @@ python scripts/plot_frontier.py results/routes.jsonl
 
 Python 3.10+, standard library only (matplotlib optional for the PNG).
 
+## Complexity training dataset
+
+Build leakage-safe train, validation, and test files with transparent prompt and
+observed-execution complexity scores:
+
+```bash
+python scripts/build_complexity_dataset.py export/
+```
+
+Outputs are written to the gitignored `results/complexity_dataset/` directory.
+Each split has aligned `*_inputs.jsonl`, `*_targets.jsonl`, and
+`*_metadata.jsonl` files. Related exact-prefix requests and semantic
+near-duplicate prompts are always assigned to the same split. All scaling and
+normalization is fitted on training rows only. The complete walkthrough and an
+optional TF–IDF baseline are in `notebooks/complexity_pipeline.ipynb`.
+
+## Model catalog and quality cutoffs
+
+Derive a per-model complexity cutoff from published benchmark results, so routing
+thresholds trace to citations instead of hand-picked constants:
+
+```bash
+python scripts/model_catalog.py            # writes results/model_catalog.json
+```
+
+Public benchmark coverage is ragged and the benchmarks disagree about which family is
+stronger, so the fit does two things. It compares every pair of models *only on the
+benchmarks both were measured on*, reconciling those pairwise differences by weighted
+least squares; then it projects the result onto the partial order of head-to-head
+dominance, so a model that beat another on every shared benchmark can never be ranked
+below it. Fitted ability becomes a quantile of the **training-split** complexity
+distribution, with a safety margin that widens where evidence is thin.
+`route_score()` / `route_trajectory()` then pick the **weakest** model whose cutoff covers a
+request, resolved at tier granularity so a model the benchmarks cannot distinguish from a
+better-evidenced one is never preferred. Selection is capability-only: prices are recorded
+on each model card but never consulted, so this supplies the quality axis of a cost-quality
+frontier rather than the frontier itself. Section 5 of
+`notebooks/complexity_pipeline.ipynb` walks the chain, including a `risk_aversion` sweep.
+
+Two findings worth knowing before you use it:
+
+- **The model ids are not anonymised.** Every id is a real public model and
+  `scripts/pricing.json` matches each one's public list price to the cent -- including
+  `gpt-5.6-sol`/`terra`/`luna`, which are OpenAI's real tier names.
+- **The logged policy is not complexity-aware** (correlation between a request's
+  complexity and its serving model's fitted capability is +0.03). That is the headroom a
+  router is competing for -- and the reason the log says little about which model a hard
+  request actually needs.
+- **The top five models are not separable** by these benchmarks: they fall inside one
+  2.7-point detectability band. Within a band the ordering is noise, so the members are
+  treated as interchangeable (`snap_to_band=True`) rather than silently ranked.
+
+Limitations are recorded in `scripts/model_catalog.py` and printed by the notebook.
+
 ## Using a coding agent
 
 Point Claude Code / Codex / Cursor / opencode at this repo — `AGENTS.md` briefs your agent.
