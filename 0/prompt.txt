@@ -1,0 +1,41 @@
+commite den aktuelln stand
+
+---
+
+push it
+
+---
+
+In the data, are the different messages related to each over, in snce of them being a whole chat history, or are they stanalone massages?
+
+---
+
+We want to create a complexity score for the dataset. to train a model to predict the complexety of the task based on the input (user and system prompt), for that we want to create a dataset including the input and a claculated complexity score. what should the masurements for this complexity score shuld be, that we use to calcualte the training data. give an overfew, on witch parameters fit in there, and how do we priortice them and compute them togeher
+
+---
+
+Implement this one. create a pyhton scrpt, for the different metrics as well as a jupyter notebook, bringing the whole process together, by splitting the dataset into input and output, as well as crating a complexity score for each request, then splitting the dataset into train test and validation, while keepintg in mind, that some lines contain other lines as conversation histoy and therefore cannot be in sepaerate datasets (tain adn test, or val) at the same time. make no mistakes
+
+---
+
+i ran the notebook, what is the dataset, we give over to our model team, so they can train on that?
+
+---
+
+check back on the results and name things we could improve, aslo get realy innovative, with things we could try out do create this dataset, just dont chnge the output style (keep the current output, becoause out model team is expectiong the same output)
+
+---
+
+implement it
+
+---
+
+Implement the plan.
+
+---
+
+the training distibutin in the plot seems to be to well deistibuted, can you check on that why this is the case (is it a bug or intendet)
+
+---
+
+dont do that

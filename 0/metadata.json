@@ -1,0 +1,159 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NGZ8JHY37A2VYN4XWXEWDJ",
+  "session_id": "01a029a3-2d9f-7e61-a821-ed52a1c26126",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-22T20:00:41.815145Z",
+  "branch": "dataset",
+  "checkpoints_count": 8,
+  "save_step_count": 7,
+  "files_touched": [
+    "README.md",
+    "notebooks/complexity_pipeline.ipynb",
+    "pyproject.toml",
+    "scripts/build_complexity_dataset.py",
+    "tests/test_build_complexity_dataset.py",
+    "uv.lock"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "0fda17045746",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 382354,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 15244441,
+    "output_tokens": 86040,
+    "api_call_count": 140
+  },
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-22T20:00:41.696725Z",
+    "agent_lines": 0,
+    "agent_removed": 0,
+    "human_added": 3630,
+    "human_modified": 375,
+    "human_removed": 0,
+    "total_committed": 3630,
+    "total_lines_changed": 4005,
+    "agent_percentage": 0,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 571,
+      "user_lines_removed": 17,
+      "agent_lines_added": 1047,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 123,
+        "pyproject.toml": 3,
+        "uv.lock": 445
+      },
+      "user_removed_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 16,
+        "pyproject.toml": 1
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 123,
+      "user_lines_removed": 16,
+      "agent_lines_added": 1495,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 123
+      },
+      "user_removed_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 16
+      }
+    },
+    {
+      "checkpoint_number": 4,
+      "user_lines_added": 123,
+      "user_lines_removed": 16,
+      "agent_lines_added": 1495,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 123
+      },
+      "user_removed_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 16
+      }
+    },
+    {
+      "checkpoint_number": 5,
+      "user_lines_added": 123,
+      "user_lines_removed": 16,
+      "agent_lines_added": 1495,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 123
+      },
+      "user_removed_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 16
+      }
+    },
+    {
+      "checkpoint_number": 6,
+      "user_lines_added": 791,
+      "user_lines_removed": 80,
+      "agent_lines_added": 1496,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 151,
+        "scripts/build_complexity_dataset.py": 530,
+        "tests/test_build_complexity_dataset.py": 110
+      },
+      "user_removed_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 20,
+        "scripts/build_complexity_dataset.py": 59,
+        "tests/test_build_complexity_dataset.py": 1
+      }
+    },
+    {
+      "checkpoint_number": 7,
+      "user_lines_added": 812,
+      "user_lines_removed": 79,
+      "agent_lines_added": 1496,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 172,
+        "scripts/build_complexity_dataset.py": 530,
+        "tests/test_build_complexity_dataset.py": 110
+      },
+      "user_removed_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 19,
+        "scripts/build_complexity_dataset.py": 59,
+        "tests/test_build_complexity_dataset.py": 1
+      }
+    },
+    {
+      "checkpoint_number": 8,
+      "user_lines_added": 791,
+      "user_lines_removed": 79,
+      "agent_lines_added": 1496,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 166,
+        "scripts/build_complexity_dataset.py": 515,
+        "tests/test_build_complexity_dataset.py": 110
+      },
+      "user_removed_per_file": {
+        "notebooks/complexity_pipeline.ipynb": 19,
+        "scripts/build_complexity_dataset.py": 59,
+        "tests/test_build_complexity_dataset.py": 1
+      }
+    }
+  ]
+}
