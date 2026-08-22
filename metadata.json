@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0MV0CSYDQE6HFYMVKZ98XWV",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    ".gitignore",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "scripts/baseline_router.py",
+    "scripts/cost_model.py",
+    "scripts/load_trajectories.py",
+    "scripts/make_synthetic_sample.py",
+    "scripts/plot_frontier.py",
+    "skills/make-presentation/SKILL.md",
+    "skills/prepare-submission/SKILL.md",
+    "skills/setup/SKILL.md",
+    "templates/presentation.html"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 63492,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 848882,
+    "output_tokens": 9796,
+    "api_call_count": 31
+  }
+}

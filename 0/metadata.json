@@ -1,0 +1,95 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0MV0CSYDQE6HFYMVKZ98XWV",
+  "session_id": "01a029a3-2d9f-7e61-a821-ed52a1c26126",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-22T13:36:49.650412Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "save_step_count": 2,
+  "files_touched": [
+    ".gitignore",
+    "AGENTS.md",
+    "CLAUDE.md",
+    "README.md",
+    "scripts/baseline_router.py",
+    "scripts/cost_model.py",
+    "scripts/load_trajectories.py",
+    "scripts/make_synthetic_sample.py",
+    "scripts/plot_frontier.py",
+    "skills/make-presentation/SKILL.md",
+    "skills/prepare-submission/SKILL.md",
+    "skills/setup/SKILL.md",
+    "templates/presentation.html"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-sol",
+  "turn_id": "b59b8def224e",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 63492,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 848882,
+    "output_tokens": 9796,
+    "api_call_count": 31
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-22T13:36:49.632734Z",
+    "agent_lines": 645,
+    "agent_removed": 1,
+    "human_added": 632,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1277,
+    "total_lines_changed": 1278,
+    "agent_percentage": 50.54773082942097,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 313,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        ".claude/settings.json": 84,
+        ".codex/hooks.json": 88,
+        ".gemini/settings.json": 141
+      }
+    },
+    {
+      "checkpoint_number": 2,
+      "user_lines_added": 316,
+      "user_lines_removed": 0,
+      "agent_lines_added": 645,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        ".claude/commands/make-presentation.md": 1,
+        ".claude/commands/prepare-submission.md": 1,
+        ".claude/commands/setup.md": 1,
+        ".claude/settings.json": 84,
+        ".codex/hooks.json": 88,
+        ".gemini/settings.json": 141
+      }
+    },
+    {
+      "checkpoint_number": 3,
+      "user_lines_added": 316,
+      "user_lines_removed": 0,
+      "agent_lines_added": 645,
+      "agent_lines_removed": 1,
+      "user_added_per_file": {
+        ".claude/commands/make-presentation.md": 1,
+        ".claude/commands/prepare-submission.md": 1,
+        ".claude/commands/setup.md": 1,
+        ".claude/settings.json": 84,
+        ".codex/hooks.json": 88,
+        ".gemini/settings.json": 141
+      }
+    }
+  ]
+}
