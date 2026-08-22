@@ -66,7 +66,7 @@ class ComplexityModel:
         self.score_reg = RidgeRegressor(alpha=1.0).fit(x, y_score)
         return self
 
-    def predict(self, features: dict) -> dict:
+    def predict(self, features: dict, *, routing: bool = False) -> dict:
         x = self._normalize([vectorize(features)])[0]
         intrinsic_vec = self.intrinsic_reg.predict([x])[0]
         observed = self.observed_reg.predict([x])[0][0]
@@ -79,7 +79,8 @@ class ComplexityModel:
         score_blend = _scale100(
             (1 - OBSERVED_WEIGHT) * intrinsic_complexity + OBSERVED_WEIGHT * observed_difficulty
         )
-        complexity_score = _scale100(0.5 * score_direct + 0.5 * score_blend)
+        full_score = _scale100(0.5 * score_direct + 0.5 * score_blend)
+        complexity_score = intrinsic_complexity if routing else full_score
 
         if complexity_score < BAND_LOW:
             band = "low"
@@ -95,6 +96,7 @@ class ComplexityModel:
             "observed_difficulty": round(observed_difficulty, 3),
             "intrinsic_components": {k: round(v, 6) for k, v in intrinsic_components.items()},
             "observed_weight": OBSERVED_WEIGHT,
+            "routing_mode": routing,
         }
 
     def to_dict(self) -> dict:

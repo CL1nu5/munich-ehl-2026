@@ -81,10 +81,10 @@ def vectorize(features: dict) -> list[float]:
 
 
 def load_feature_lookup(datasets_dir: str | Path = "datasets") -> dict[str, dict]:
-    """Official static_text_features from validation_inputs + test_inputs."""
+    """Official static_text_features from train/validation/test inputs."""
     lookup: dict[str, dict] = {}
     root = Path(datasets_dir)
-    for name in ("validation_inputs.jsonl", "test_inputs.jsonl"):
+    for name in ("train_inputs.jsonl", "validation_inputs.jsonl", "test_inputs.jsonl"):
         path = root / name
         if not path.exists():
             continue
@@ -95,6 +95,32 @@ def load_feature_lookup(datasets_dir: str | Path = "datasets") -> dict[str, dict
                 row = json.loads(line)
                 lookup[row["request_id"]] = row["static_text_features"]
     return lookup
+
+
+def load_split_ids(datasets_dir: str | Path, split: str) -> set[str]:
+    path = Path(datasets_dir) / f"{split}_targets.jsonl"
+    if not path.exists():
+        return set()
+    return {json.loads(l)["request_id"] for l in open(path) if l.strip()}
+
+
+def load_train_ids(datasets_dir: str | Path = "datasets") -> set[str]:
+    return load_split_ids(datasets_dir, "train")
+
+
+def load_held_out_ids(datasets_dir: str | Path = "datasets") -> set[str]:
+    """request_ids in validation + test targets (excluded from router training)."""
+    ids: set[str] = set()
+    root = Path(datasets_dir)
+    for name in ("validation_targets.jsonl", "test_targets.jsonl"):
+        path = root / name
+        if not path.exists():
+            continue
+        with open(path) as f:
+            for line in f:
+                if line.strip():
+                    ids.add(json.loads(line)["request_id"])
+    return ids
 
 
 def load_validation_feature_lookup(datasets_dir: str | Path = "datasets") -> dict[str, dict]:

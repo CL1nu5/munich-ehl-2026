@@ -98,8 +98,14 @@ def eval_holdout(
         c_logged, _ = trajectory_cost(calls, logged, pricing)
         c_routed, _ = trajectory_cost(calls, routed, pricing)
         logged_q = logged_outcome_quality(target)
+        feat = lookup.get(rid) or features_for_request(calls[0], request_id=rid, lookup=lookup)
         est_q, method = estimate_routed_quality(
-            routed_model, logged_model, target["complexity_band"], logged_q, table
+            routed_model,
+            logged_model,
+            target["complexity_band"],
+            logged_q,
+            table,
+            features=feat,
         )
 
         rows.append(
@@ -125,6 +131,7 @@ def eval_holdout(
 def eval_baseline_holdout(
     groups: dict,
     targets: dict[str, dict],
+    lookup: dict,
     pricing: dict,
     table: dict,
 ) -> list[dict]:
@@ -141,8 +148,14 @@ def eval_baseline_holdout(
         c_logged, _ = trajectory_cost(calls, logged, pricing)
         c_routed, _ = trajectory_cost(calls, routed, pricing)
         logged_q = logged_outcome_quality(target)
+        feat = lookup.get(rid) or features_for_request(calls[0], request_id=rid, lookup=lookup)
         est_q, method = estimate_routed_quality(
-            routed_model, logged_model, target["complexity_band"], logged_q, table
+            routed_model,
+            logged_model,
+            target["complexity_band"],
+            logged_q,
+            table,
+            features=feat,
         )
         rows.append(
             {
@@ -297,7 +310,7 @@ def run_split_eval(
     table: dict,
 ) -> dict:
     holdout_rows = eval_holdout(router, groups, targets, lookup, pricing, table)
-    baseline_rows = eval_baseline_holdout(groups, targets, pricing, table)
+    baseline_rows = eval_baseline_holdout(groups, targets, lookup, pricing, table)
     summary = summarize(holdout_rows)
     baseline_summary = summarize(
         [
@@ -343,14 +356,14 @@ def print_split_report(result: dict) -> None:
 
 def write_split_outputs(result: dict, out_dir: Path) -> None:
     split = result["split"]
-    prefix = "holdout" if split == "validation" else split
+    prefix = split  # validation | test
 
     payload = {
-        "schema_version": "munich_ehl_eval_v1",
+        "schema_version": "munich_ehl_eval_v2",
         "split": split,
-        "quality_signal": "mean(observed_components); off-policy via band×model match table (fit on validation)",
+        "quality_signal": "mean(observed_components); off-policy via kNN + band×model match table (fit on train)",
         "failure_modes": [
-            "match table built from validation only",
+            "match table built from train split (700 labels)",
             "match cells with n<3 fall back to model or global mean",
             "routed!=logged assumes quality independent of task beyond band",
             "output tokens excluded from cost; tokens are chars/4 estimates",
@@ -415,9 +428,11 @@ def main():
 
     router = load_router(Path(args.checkpoint))
     lookup = load_feature_lookup(datasets_dir)
-    val_targets = load_targets(datasets_dir / "validation_targets.jsonl")
+    train_path = datasets_dir / "train_targets.jsonl"
+    quality_targets_path = train_path if train_path.exists() else datasets_dir / "validation_targets.jsonl"
+    quality_targets = load_targets(quality_targets_path)
     models_by_id = load_models_from_export(export_file)
-    table = build_match_table(list(val_targets.values()), models_by_id)
+    table = build_match_table(list(quality_targets.values()), models_by_id, lookup)
     pricing = load_pricing()
     groups = annotate_groups(export_dir)
 
