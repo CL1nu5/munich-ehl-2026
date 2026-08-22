@@ -71,9 +71,11 @@ def route_trajectory_baseline(calls: list[dict]) -> str:
         return cheap_for(calls[0]["model"])
     return calls[0]["model"]
 
-def route_trajectory_team(key: str, calls: list[dict], router: RouterModel, lookup: dict) -> str:
-    feat = features_for_request(calls[0], request_id=key, lookup=lookup)
-    return router.route(feat, logged_model=calls[0]["model"])["routed_model"]
+def route_trajectory_team(
+    request_id: str, calls: list[dict], router: RouterModel, lookup: dict
+) -> dict:
+    feat = lookup.get(request_id) or features_for_request(calls[0], request_id=request_id, lookup=lookup)
+    return router.route(feat, logged_model=calls[0]["model"])
 
 
 def eval_holdout(
@@ -92,7 +94,8 @@ def eval_holdout(
         key, calls = found
         logged = logged_route(calls)
         logged_model = logged[0]
-        routed_model = route_trajectory_team(key, calls, router, lookup)
+        decision = route_trajectory_team(rid, calls, router, lookup)
+        routed_model = decision["routed_model"]
         routed = [routed_model for _ in calls]
 
         c_logged, _ = trajectory_cost(calls, logged, pricing)
@@ -102,7 +105,7 @@ def eval_holdout(
         est_q, method = estimate_routed_quality(
             routed_model,
             logged_model,
-            target["complexity_band"],
+            decision.get("predicted_band", target["complexity_band"]),
             logged_q,
             table,
             features=feat,
@@ -115,6 +118,9 @@ def eval_holdout(
                 "n_calls": len(calls),
                 "complexity_band": target["complexity_band"],
                 "complexity_score": target["complexity_score"],
+                "predicted_band": decision.get("predicted_band"),
+                "predicted_score": decision.get("predicted_score"),
+                "route_reason": decision.get("route_reason"),
                 "logged_model": logged_model,
                 "routed_model": routed_model,
                 "cost_logged_usd": round(c_logged, 6),
@@ -359,7 +365,7 @@ def write_split_outputs(result: dict, out_dir: Path) -> None:
     prefix = split  # validation | test
 
     payload = {
-        "schema_version": "munich_ehl_eval_v2",
+        "schema_version": "munich_ehl_eval_v3",
         "split": split,
         "quality_signal": "mean(observed_components); off-policy via kNN + band×model match table (fit on train)",
         "failure_modes": [

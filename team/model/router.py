@@ -1,9 +1,10 @@
-"""Model router: complexity + cost-downshift policy -> model id."""
+"""Model router v3: complexity + guarded cost-downshift + quality veto."""
 from __future__ import annotations
 
 from .complexity import ComplexityModel
 from .features import vectorize
 from .linear import SoftmaxRouter
+from .quality_prior import QualityPrior
 
 ROUTER_CLASSES = [
     "claude-fable-5",
@@ -13,7 +14,8 @@ ROUTER_CLASSES = [
     "gpt-5.6-sol",
 ]
 
-BAND_CHEAP = {
+# high: downshift opus/fable only (see _band_target)
+BAND_CHEAP: dict[str, str | None] = {
     "low": "gpt-5.6-terra",
     "medium": "claude-sonnet-5",
     "high": "claude-sonnet-5",
@@ -32,6 +34,7 @@ MODEL_COST_RANK = {
 }
 
 DEFAULT_CONFIDENCE = 0.35
+DEFAULT_QUALITY_VETO_DELTA = 0.025
 
 
 def model_tier(m: str) -> str:
@@ -61,12 +64,20 @@ def cost_rank(m: str | None) -> int:
 
 
 class RouterModel:
-    def __init__(self, complexity: ComplexityModel | None = None, confidence_threshold: float = DEFAULT_CONFIDENCE):
+    def __init__(
+        self,
+        complexity: ComplexityModel | None = None,
+        confidence_threshold: float = DEFAULT_CONFIDENCE,
+        quality_veto_delta: float = DEFAULT_QUALITY_VETO_DELTA,
+        quality_prior: QualityPrior | None = None,
+    ):
         self.complexity = complexity or ComplexityModel()
         self.classifier = SoftmaxRouter(classes=ROUTER_CLASSES)
         self.extra_means: list[float] | None = None
         self.extra_stds: list[float] | None = None
         self.confidence_threshold = confidence_threshold
+        self.quality_veto_delta = quality_veto_delta
+        self.quality_prior = quality_prior
 
     def _augment(self, features: dict, complexity_pred: dict) -> list[float]:
         base = vectorize(features)
@@ -104,18 +115,63 @@ class RouterModel:
         self.classifier.fit(rows, labels)
         return self
 
-    def _band_target(self, band: str) -> str:
-        return BAND_CHEAP.get(band, "claude-sonnet-5")
+    def _band_target(self, band: str, logged: str) -> str | None:
+        target = BAND_CHEAP.get(band)
+        if band == "high" and model_tier(logged) not in ("opus", "fable"):
+            return None
+        return target
+
+    def _allowed_downshift(self, candidate: str, logged: str) -> bool:
+        if cost_rank(candidate) > cost_rank(logged):
+            return False
+        delta = cost_rank(logged) - cost_rank(candidate)
+        # v2 failure mode: opus/fable -> gpt cross-family drops hurt quality
+        if logged.startswith("claude-opus") and candidate.startswith("gpt"):
+            return False
+        if logged.startswith("claude-fable") and candidate.startswith("gpt"):
+            return delta <= 1
+        return delta <= 2
+
+    def _quality_ok(self, band: str, candidate: str, logged: str) -> bool:
+        if not self.quality_prior:
+            return True
+        est_c = self.quality_prior.estimate(band, candidate)
+        est_l = self.quality_prior.estimate(band, logged)
+        return est_c >= est_l - self.quality_veto_delta
+
+    def _accept_candidate(
+        self, candidate: str, logged: str, band: str, reason: str
+    ) -> tuple[str, str] | None:
+        if candidate == logged:
+            return logged, "keep_logged"
+        if not self._allowed_downshift(candidate, logged):
+            return None
+        if not self._quality_ok(band, candidate, logged):
+            return None
+        return candidate, reason
 
     def _pick_model(self, band: str, pred: str, max_p: float, logged_model: str | None) -> tuple[str, str]:
         logged = logged_model or pred
-        band_target = self._band_target(band)
+
         if band == "low":
-            return band_target, "downshift_low"
-        if max_p >= self.confidence_threshold and cost_rank(pred) < cost_rank(logged):
-            return pred, "classifier_downshift"
-        if cost_rank(band_target) < cost_rank(logged):
-            return band_target, f"downshift_{band}"
+            band_target = self._band_target("low", logged)
+            if band_target:
+                accepted = self._accept_candidate(band_target, logged, band, "downshift_low")
+                if accepted:
+                    return accepted
+            return logged, "keep_logged"
+
+        if max_p >= self.confidence_threshold:
+            accepted = self._accept_candidate(pred, logged, band, "classifier_downshift")
+            if accepted:
+                return accepted
+
+        band_target = self._band_target(band, logged)
+        if band_target:
+            accepted = self._accept_candidate(band_target, logged, band, f"downshift_{band}")
+            if accepted:
+                return accepted
+
         return logged, "keep_logged"
 
     def route(self, features: dict, logged_model: str | None = None) -> dict:
@@ -125,15 +181,20 @@ class RouterModel:
         proba = self.classifier.predict_proba([row])[0]
         max_p = max(proba)
         chosen, reason = self._pick_model(comp["complexity_band"], pred, max_p, logged_model)
+        logged = logged_model or pred
+        band_target = self._band_target(comp["complexity_band"], logged)
 
         return {
             **comp,
+            "predicted_band": comp["complexity_band"],
+            "predicted_score": comp["complexity_score"],
             "routed_model": chosen,
             "classifier_model": pred,
-            "rule_model": self._band_target(comp["complexity_band"]),
+            "rule_model": band_target,
             "route_reason": reason,
             "classifier_confidence": round(max_p, 4),
             "confidence_threshold": self.confidence_threshold,
+            "quality_veto_delta": self.quality_veto_delta,
             "class_probs": {c: round(p, 4) for c, p in zip(ROUTER_CLASSES, proba)},
             "logged_model": logged_model,
         }
@@ -147,13 +208,19 @@ class RouterModel:
             "router_classes": ROUTER_CLASSES,
             "band_cheap": BAND_CHEAP,
             "confidence_threshold": self.confidence_threshold,
+            "quality_veto_delta": self.quality_veto_delta,
+            "downshift_policy": "opus/fable->gpt blocked; max rank delta 2",
+            "quality_prior": self.quality_prior.to_dict() if self.quality_prior else None,
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "RouterModel":
+        prior = QualityPrior.from_dict(d["quality_prior"]) if d.get("quality_prior") else None
         m = cls(
             complexity=ComplexityModel.from_dict(d["complexity"]),
             confidence_threshold=d.get("confidence_threshold", DEFAULT_CONFIDENCE),
+            quality_veto_delta=d.get("quality_veto_delta", DEFAULT_QUALITY_VETO_DELTA),
+            quality_prior=prior,
         )
         m.classifier = SoftmaxRouter.from_dict(d["classifier"])
         m.extra_means = d["extra_means"]

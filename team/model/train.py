@@ -1,22 +1,20 @@
 #!/usr/bin/env python3
-"""Train complexity + router models.
+"""Train complexity + router models (v3).
 
 Usage (from repo root):
   python team/model/train.py
-  python team/model/train.py --complexity-split train --export export/trajectories_v1_01.jsonl
 """
 from __future__ import annotations
 
 import argparse
 import json
-import random
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "team"))
 
-from model.complexity import ComplexityModel  # noqa: E402
+from model.complexity import BAND_HIGH, BAND_LOW, ComplexityModel  # noqa: E402
 from model.features import (  # noqa: E402
     FEATURE_NAMES,
     features_for_request,
@@ -26,7 +24,8 @@ from model.features import (  # noqa: E402
     load_train_ids,
 )
 from model.linear import save_checkpoint  # noqa: E402
-from model.router import ROUTER_CLASSES, RouterModel, cost_rank, model_tier  # noqa: E402
+from model.quality_prior import QualityPrior  # noqa: E402
+from model.router import ROUTER_CLASSES, RouterModel, cost_rank  # noqa: E402
 
 sys.path.insert(0, str(ROOT / "scripts"))
 from load_trajectories import group_trajectories, iter_requests  # noqa: E402
@@ -89,29 +88,56 @@ def eval_complexity(model: ComplexityModel, feats: list[dict], labels: list[dict
     true_scores = [y["complexity_score"] for y in labels]
     pred_bands = [model.predict(f, routing=routing)["complexity_band"] for f in feats]
     true_bands = [y["complexity_band"] for y in labels]
-    n = len(feats)
     return {
-        "n": n,
+        "n": len(feats),
         "score_mae": round(mae(true_scores, pred_scores), 3),
         "band_accuracy": round(band_acc(true_bands, pred_bands), 3),
     }
 
 
-def tune_confidence(router: RouterModel, router_val: list[tuple[dict, str]]) -> float:
+def tune_band_thresholds(
+    train_f: list[dict], train_y: list[dict], val_f: list[dict], val_y: list[dict]
+) -> tuple[float, float, dict]:
+    best_low, best_high = BAND_LOW, BAND_HIGH
+    best_score = -1.0
+    best_metrics: dict = {}
+    for low in range(35, 51, 5):
+        for high in range(65, 81, 5):
+            if high <= low + 15:
+                continue
+            model = ComplexityModel(band_low=float(low), band_high=float(high)).fit(train_f, train_y)
+            metrics = eval_complexity(model, val_f, val_y, routing=True)
+            score = metrics["band_accuracy"] - metrics["score_mae"] / 100.0
+            if score > best_score:
+                best_score = score
+                best_low, best_high = float(low), float(high)
+                best_metrics = metrics
+    return best_low, best_high, best_metrics
+
+
+def tune_confidence(
+    router: RouterModel, router_val: list[tuple[dict, str]], *, quality_weight: float = 8.0
+) -> float:
     if not router_val:
         return router.confidence_threshold
     best_t, best_score = router.confidence_threshold, -1e18
-    for i in range(6, 16):
+    for i in range(5, 18):
         t = i / 20.0
         router.confidence_threshold = t
-        saved = tier_ok = 0
+        saved_tiers = 0.0
+        q_delta = 0.0
+        n_changed = 0
         for f, m in router_val:
             r = router.route(f, logged_model=m)
             if r["routed_model"] != m:
-                saved += 1
-            if model_tier(r["routed_model"]) == model_tier(m) or cost_rank(r["routed_model"]) <= cost_rank(m):
-                tier_ok += 1
-        score = saved + 0.5 * tier_ok
+                n_changed += 1
+                saved_tiers += cost_rank(m) - cost_rank(r["routed_model"])
+                if router.quality_prior:
+                    band = r["predicted_band"]
+                    q_delta += router.quality_prior.estimate(band, r["routed_model"]) - router.quality_prior.estimate(
+                        band, m
+                    )
+        score = saved_tiers + quality_weight * q_delta + 0.1 * n_changed
         if score > best_score:
             best_score = score
             best_t = t
@@ -125,8 +151,8 @@ def main():
     ap.add_argument("--export", default=str(ROOT / "export" / "trajectories_v1_01.jsonl"))
     ap.add_argument("--out", default=str(ROOT / "team" / "checkpoints"))
     ap.add_argument("--seed", type=int, default=42)
-    ap.add_argument("--complexity-split", default="train", help="split for complexity training")
-    ap.add_argument("--complexity-eval-split", default="validation", help="split for complexity metrics")
+    ap.add_argument("--complexity-split", default="train")
+    ap.add_argument("--complexity-eval-split", default="validation")
     args = ap.parse_args()
 
     datasets_dir = Path(args.datasets)
@@ -136,39 +162,46 @@ def main():
     held_out_ids = load_held_out_ids(datasets_dir)
     val_ids = load_split_ids(datasets_dir, "validation")
 
-    # --- Stage 1: complexity on official train split ---
-    cx_train_f, cx_train_y, cx_train_ids = load_labeled_complexity(datasets_dir, args.complexity_split)
+    cx_train_f, cx_train_y, _ = load_labeled_complexity(datasets_dir, args.complexity_split)
     cx_val_f, cx_val_y, _ = load_labeled_complexity(datasets_dir, args.complexity_eval_split)
 
-    complexity_dev = ComplexityModel().fit(cx_train_f, cx_train_y)
+    band_low, band_high, band_val_metrics = tune_band_thresholds(cx_train_f, cx_train_y, cx_val_f, cx_val_y)
+    complexity_dev = ComplexityModel(band_low=band_low, band_high=band_high).fit(cx_train_f, cx_train_y)
     cx_metrics = {
         "train_split": args.complexity_split,
         "eval_split": args.complexity_eval_split,
         "n_train": len(cx_train_f),
+        "band_thresholds": [band_low, band_high],
+        "tuned_band_val": band_val_metrics,
         "full_score": eval_complexity(complexity_dev, cx_val_f, cx_val_y, routing=False),
         "routing_score": eval_complexity(complexity_dev, cx_val_f, cx_val_y, routing=True),
     }
 
-    # --- Stage 2: router on train request_ids (exclude val/test for clean tuning) ---
-    rt_feats, rt_models, rt_ids = load_router_training(Path(args.export), lookup)
-    router_train_ids = train_ids - held_out_ids
-    router_train = [
-        (f, m)
-        for f, m, rid in zip(rt_feats, rt_models, rt_ids)
-        if rid in router_train_ids
-    ]
-    router_val = [
-        (f, m) for f, m, rid in zip(rt_feats, rt_models, rt_ids) if rid in val_ids
-    ]
+    train_targets = {
+        json.loads(l)["request_id"]: json.loads(l)
+        for l in open(datasets_dir / "train_targets.jsonl")
+        if l.strip()
+    }
+    export_path = Path(args.export)
+    models_by_id = {}
+    with open(export_path) as f:
+        for i, line in enumerate(f, start=1):
+            if line.strip():
+                models_by_id[f"{export_path.name}:{i}"] = json.loads(line)["model"]
+    quality_prior = QualityPrior.from_targets(list(train_targets.values()), models_by_id)
 
-    router = RouterModel(complexity=complexity_dev)
+    rt_feats, rt_models, rt_ids = load_router_training(export_path, lookup)
+    router_train_ids = train_ids - held_out_ids
+    router_train = [(f, m) for f, m, rid in zip(rt_feats, rt_models, rt_ids) if rid in router_train_ids]
+    router_val = [(f, m) for f, m, rid in zip(rt_feats, rt_models, rt_ids) if rid in val_ids]
+
+    router = RouterModel(complexity=complexity_dev, quality_prior=quality_prior)
     router.fit([f for f, _ in router_train], [m for _, m in router_train])
     tuned_conf = tune_confidence(router, router_val)
 
     rt_preds = [router.route(f, logged_model=m)["routed_model"] for f, m in router_val]
     rt_true = [m for _, m in router_val]
     rt_acc = sum(p == t for p, t in zip(rt_preds, rt_true)) / max(1, len(rt_true))
-    tier_acc = sum(model_tier(p) == model_tier(t) for p, t in zip(rt_preds, rt_true)) / max(1, len(rt_true))
 
     router_metrics = {
         "n_train": len(router_train),
@@ -177,16 +210,20 @@ def main():
         "n_tune_validation": len(router_val),
         "confidence_threshold": round(tuned_conf, 3),
         "exact_accuracy": round(rt_acc, 3),
-        "tier_accuracy": round(tier_acc, 3),
         "classes": ROUTER_CLASSES,
+        "policy": "v3: block opus->gpt, quality veto, guarded downshift",
     }
 
-    complexity_final = ComplexityModel().fit(cx_train_f, cx_train_y)
-    router_final = RouterModel(complexity=complexity_final, confidence_threshold=tuned_conf)
+    complexity_final = ComplexityModel(band_low=band_low, band_high=band_high).fit(cx_train_f, cx_train_y)
+    router_final = RouterModel(
+        complexity=complexity_final,
+        confidence_threshold=tuned_conf,
+        quality_prior=quality_prior,
+    )
     router_final.fit([f for f, _ in router_train], [m for _, m in router_train])
 
     payload = {
-        "schema_version": "munich_ehl_router_model_v2",
+        "schema_version": "munich_ehl_router_model_v3",
         "seed": args.seed,
         "feature_names": FEATURE_NAMES,
         "complexity_metrics": cx_metrics,
@@ -196,10 +233,10 @@ def main():
     ckpt = out_dir / "model.json"
     save_checkpoint(ckpt, payload)
 
-    print(f"=== Complexity model (train={args.complexity_split}, eval={args.complexity_eval_split}) ===")
+    print(f"=== Complexity v3 (bands={band_low}/{band_high}) ===")
     for k, v in cx_metrics.items():
         print(f"  {k}: {v}")
-    print("=== Router (tune on validation, train on train\\val\\test excluded) ===")
+    print("=== Router v3 ===")
     for k, v in router_metrics.items():
         print(f"  {k}: {v}")
     print(f"wrote {ckpt}")

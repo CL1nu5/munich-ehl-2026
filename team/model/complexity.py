@@ -33,7 +33,9 @@ def _scale100(v: float) -> float:
 
 
 class ComplexityModel:
-    def __init__(self):
+    def __init__(self, band_low: float = BAND_LOW, band_high: float = BAND_HIGH):
+        self.band_low = band_low
+        self.band_high = band_high
         self.intrinsic_reg = RidgeRegressor(alpha=2.0)
         self.observed_reg = RidgeRegressor(alpha=2.0)
         self.feature_means: list[float] | None = None
@@ -82,9 +84,9 @@ class ComplexityModel:
         full_score = _scale100(0.5 * score_direct + 0.5 * score_blend)
         complexity_score = intrinsic_complexity if routing else full_score
 
-        if complexity_score < BAND_LOW:
+        if complexity_score < self.band_low:
             band = "low"
-        elif complexity_score < BAND_HIGH:
+        elif complexity_score < self.band_high:
             band = "medium"
         else:
             band = "high"
@@ -107,12 +109,13 @@ class ComplexityModel:
             "feature_means": self.feature_means,
             "feature_stds": self.feature_stds,
             "observed_weight": OBSERVED_WEIGHT,
-            "band_thresholds": [BAND_LOW, BAND_HIGH],
+            "band_thresholds": [self.band_low, self.band_high],
         }
 
     @classmethod
     def from_dict(cls, d: dict) -> "ComplexityModel":
-        m = cls()
+        thresholds = d.get("band_thresholds", [BAND_LOW, BAND_HIGH])
+        m = cls(band_low=thresholds[0], band_high=thresholds[1])
         m.intrinsic_reg = RidgeRegressor.from_dict(d["intrinsic_reg"])
         m.observed_reg = RidgeRegressor.from_dict(d["observed_reg"])
         m.score_reg = RidgeRegressor.from_dict(d["score_reg"])
