@@ -81,9 +81,22 @@ band:  < 35 → low  |  < 80 → medium  |  else high   # tuned on validation
 python team/model/train.py
 python team/model/predict.py export/
 python team/eval/evaluate.py --split both
+python team/eval/explain_report.py --split both   # per-model / per-reason breakdown
 ```
 
 Checkpoint: `team/checkpoints/model.json` · schema `munich_ehl_router_model_v3`
+
+### Explainability outputs (`results/explain_*`)
+
+| File | Content |
+|------|---------|
+| `explain_{split}.json` | Overall + by model / reason / band + transitions |
+| `explain_{split}_rows.csv` | Per-trajectory: cost, quality, `route_reason`, top feature |
+| `explain_{split}_by_model.csv` | Aggregated cost & quality per **routed model** |
+| `explain_{split}_by_reason.csv` | Aggregated per **route_reason** |
+| `explain_{split}_transitions.csv` | `logged_model → routed_model` matrix |
+
+Each row includes **Ridge feature attribution** (top-5 features pushing complexity score) and **QualityPrior** estimates (`prior_logged` vs `prior_routed`).
 
 ---
 
@@ -140,12 +153,14 @@ team/
 │   ├── complexity.py       # Ridge + tunable bands
 │   ├── router.py           # v3 guarded policy
 │   ├── quality_prior.py    # routing-time quality veto
+│   ├── explain.py          # feature attribution + decision trace
 │   ├── features.py         # 11 static dims
 │   ├── linear.py           # Ridge + Softmax (stdlib)
 │   ├── train.py
 │   └── predict.py
 └── eval/
     ├── evaluate.py
+    ├── explain_report.py   # interpretability breakdown
     └── quality.py
 ```
 
