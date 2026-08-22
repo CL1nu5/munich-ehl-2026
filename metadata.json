@@ -1,0 +1,44 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0NS7XZZVVT8TEDBCHDX73CZ",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "README.md",
+    "dashboard/template.html",
+    "notebooks/complexity_pipeline.ipynb",
+    "pyproject.toml",
+    "scripts/baseline_router.py",
+    "scripts/build_dashboard_data.py",
+    "scripts/load_trajectories.py",
+    "scripts/model_catalog.py",
+    "team/README.md",
+    "team/eval/evaluate.py",
+    "team/eval/quality.py",
+    "team/model/predict.py",
+    "team/model/router.py",
+    "team/model/train.py",
+    "tests/test_dashboard_data.py",
+    "tests/test_load_trajectories.py",
+    "tests/test_quality.py",
+    "tests/test_team_train.py",
+    "uv.lock"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 365105,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 5413216,
+    "output_tokens": 41433,
+    "api_call_count": 48
+  }
+}

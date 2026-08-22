@@ -1,0 +1,1 @@
+› clean up the repository, check if tere are any bugs, as well as give me a report on how the current setup works in its interity
