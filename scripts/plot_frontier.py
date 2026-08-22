@@ -17,7 +17,7 @@ def quality(rec):  # PLACEHOLDER — replace with your outcome signal
 
 def main():
     src = sys.argv[1] if len(sys.argv) > 1 else "results/routes.jsonl"
-    recs = [json.loads(l) for l in open(src)]
+    recs = [json.loads(l) for l in open(src, encoding="utf-8")]
     total_calls = sum(r["n_calls"] for r in recs)
     # Sweep how much of the router's proposal to adopt: adopt for the cheapest X% of
     # trajectories first (they are the safest bets), keep the rest on the logged model.
@@ -30,7 +30,7 @@ def main():
         rows.append({"adopt_frac": frac, "cost_usd": round(cost, 4),
                      "quality_placeholder": round(kept / total_calls, 3)})
     out = Path(src).parent / "frontier.csv"
-    with open(out, "w", newline="") as f:
+    with open(out, "w", newline="", encoding="utf-8") as f:
         w = csv.DictWriter(f, fieldnames=rows[0].keys()); w.writeheader(); w.writerows(rows)
     print(f"wrote {out}")
     for r in rows: print(r)

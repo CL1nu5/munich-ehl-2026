@@ -36,7 +36,7 @@ def main():
     pricing = load_pricing()
     groups = group_trajectories(r for _, _, r in iter_requests(export))
     Path("results").mkdir(exist_ok=True)
-    out = open("results/routes.jsonl", "w")
+    out = open("results/routes.jsonl", "w", encoding="utf-8")
     tot_logged = tot_routed = 0.0
     for key, calls in groups.items():
         logged = logged_route(calls); routed = route_trajectory(calls)
