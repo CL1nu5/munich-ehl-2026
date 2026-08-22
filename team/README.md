@@ -1,51 +1,81 @@
-# Team Router v3 — Model Architecture
+# Viktor Router v3 — Guarded Cost-Downshift
 
-Two-stage **routing-time-only** router with **guarded cost-downshift** and **quality veto** (Munich EHL 2026 Viktor Challenge).
+Two-stage, **routing-time-only** model router for the Munich EHL 2026 Viktor Challenge.  
+Predicts task complexity from static text, then applies a **guarded downshift policy** with a **quality veto** to pick one model id for the whole trajectory.
+
+**Branch:** `team/router-v3` · frozen v2: `team/router-v2`
 
 ![Model architecture](model-architecture.png)
 
-**Branches:** `team/router-v2` (frozen) · `team/router-v3` (current)
-
 ---
 
-## v3 changes vs v2
+## Design goal
 
-| Change | Rationale |
-|--------|-----------|
-| Block `claude-opus → gpt-*` | Main quality killer in v2 (60+ trajectories) |
-| Allow `opus → sonnet` (rank Δ≤2) | Keeps savings on expensive trajectories |
-| Quality veto at route time | `QualityPrior` from train labels rejects risky downshifts |
-| High band: downshift only opus/fable | Don't touch already-cheap logged models |
-| Tune band thresholds on validation | Grid search 35–50 / 65–80 |
-| Cost–quality confidence tuning | Validation objective balances savings + estimated quality |
+Move along the **cost–quality frontier**: save money on trajectories where downshifting is safe, keep the logged model everywhere else. v3 fixes v2's main failure mode — aggressive `claude-opus → gpt-*` routes that hurt test quality.
 
 ---
 
 ## Pipeline
 
-```
-static features → ComplexityModel (intrinsic band)
-                → RouterModel (classifier + guarded downshift + quality veto)
-                → routed_model (one per trajectory)
+```mermaid
+flowchart LR
+    R[LLM request] --> F[11 static features]
+    F --> S1[ComplexityModel<br/>intrinsic → band]
+    F --> S2[RouterModel]
+    S1 -->|score, band| S2
+    QP[QualityPrior<br/>train labels] --> S2
+    S2 --> GV{Guarded downshift}
+    GV --> OUT[routed_model]
 ```
 
 ---
 
-## Results (cache-aware input cost)
+## Stage 1 — ComplexityModel
 
-| Split | n | Cost Δ | Quality Δ | Route changed | v2 quality Δ |
-|-------|---|--------|-----------|---------------|--------------|
-| **Validation** | 154 | **−30.2%** | **+0.020** | 42% | +0.011 |
-| **Test** | 148 | **−16.9%** | **+0.007** | 31% | −0.017 |
-| Full export | 978 | **−20.7%** | — | — | −46.8%* |
+At routing time only **intrinsic** complexity is used (`routing=True`):
 
-\*v2 full-export savings were inflated by aggressive opus→gpt; v3 is more conservative and honest on holdout.
+```
+complexity_score = mean(5 intrinsic components)   # 0–100
+band:  < 35 → low  |  < 80 → medium  |  else high   # tuned on validation
+```
 
-**Baseline (validation):** cost −15.1%, quality +0.024
+| Component | Source |
+|-----------|--------|
+| 11 static features | `static_text_features` in `datasets/*_inputs.jsonl` |
+| Ridge ×3 | intrinsic components, observed difficulty, score |
+| Band thresholds | grid search on validation (accuracy − MAE/100) |
 
 ---
 
-## Commands
+## Stage 2 — RouterModel
+
+**Inputs:** 11 features + 4 complexity features → Softmax over 5 production models.
+
+**Decision order** (`router.py`):
+
+| Step | Rule |
+|------|------|
+| 1 | **low** → `gpt-5.6-terra` |
+| 2 | **classifier** → only if confidence ≥ threshold **and** cheaper than logged |
+| 3 | **medium / high** → `claude-sonnet-5` if cheaper than logged |
+| 4 | **high** → band downshift only when logged tier is opus or fable |
+| 5 | **Guards** — block `claude-opus → gpt-*`; max rank Δ ≤ 2 (allows `opus → sonnet`) |
+| 6 | **Quality veto** — reject candidate if `QualityPrior` estimates quality drop > 0.025 |
+| 7 | else → **keep logged model** (never upgrade tier) |
+
+`QualityPrior` is a `band × model` lookup fit on **700 train labels** (with model/global fallback).
+
+---
+
+## Training splits
+
+| Stage | Data | n |
+|-------|------|---|
+| Complexity train | `train_inputs` + `train_targets` | 700 |
+| Complexity tune | validation (band thresholds) | 154 |
+| Router train | train `request_id`s in export, **minus val/test** | 505 |
+| Router tune | validation (confidence threshold) | 154 |
+| Quality prior + kNN / match table | `train_targets` | 700 |
 
 ```bash
 python team/model/train.py
@@ -53,25 +83,85 @@ python team/model/predict.py export/
 python team/eval/evaluate.py --split both
 ```
 
+Checkpoint: `team/checkpoints/model.json` · schema `munich_ehl_router_model_v3`
+
+---
+
+## Results
+
+Cache-aware **input** cost (output excluded). Quality is an **off-policy estimate** (kNN + match table on train).
+
+### Cost–quality (v3 vs v2)
+
+| Split | n | v3 cost Δ | v3 quality Δ | v2 quality Δ | Route changed |
+|-------|---|-----------|--------------|--------------|---------------|
+| **Validation** | 154 | **−30.2%** | **+0.020** | +0.011 | 42% |
+| **Test** | 148 | **−16.9%** | **+0.007** | −0.017 | 31% |
+| Full export | 978 | **−20.7%** | — | — | — |
+
+**Baseline (validation):** cost −15.1%, quality +0.024
+
+v3 trades some full-export savings (v2 was −46.8%) for **positive test quality** and more honest holdout behavior.
+
+### Complexity model (labeled band vs predicted)
+
+| Split | Score MAE | Band accuracy |
+|-------|-----------|---------------|
+| Validation | 11.68 | 47% |
+| Test | 12.96 | 43% |
+
+Eval CSVs now include `predicted_band`, `predicted_score`, and `route_reason` alongside ground-truth labels.
+
+---
+
+## Evaluation
+
+`team/eval/evaluate.py` reports per-split summaries to `results/validation_*` and `results/test_*`:
+
+- **Cost:** `scripts/cost_model.py` — cache-aware input pricing, chars÷4 token estimates
+- **Quality:** `team/eval/quality.py` — kNN over train features + `band×model` match table
+- **Frontier:** `adopt_frac` sweep (adopt highest-savings routes first)
+
+**Failure modes we name:**
+- Match table built from train only; sparse cells fall back to model/global mean
+- Routed ≠ logged assumes quality depends on band + model, not unobserved task factors
+- Output tokens excluded from cost
+
 ---
 
 ## Layout
 
 ```
 team/
+├── README.md
+├── model-architecture.png
+├── checkpoints/model.json
 ├── model/
-│   ├── complexity.py      # Ridge complexity + tunable bands
-│   ├── router.py          # v3 guarded downshift policy
-│   ├── quality_prior.py   # train-fit band×model quality lookup
-│   └── train.py
-├── eval/
-└── checkpoints/model.json   # schema: munich_ehl_router_model_v3
+│   ├── complexity.py       # Ridge + tunable bands
+│   ├── router.py           # v3 guarded policy
+│   ├── quality_prior.py    # routing-time quality veto
+│   ├── features.py         # 11 static dims
+│   ├── linear.py           # Ridge + Softmax (stdlib)
+│   ├── train.py
+│   └── predict.py
+└── eval/
+    ├── evaluate.py
+    └── quality.py
 ```
+
+---
+
+## Related repo tools
+
+- `scripts/model_catalog.py` — benchmark-anchored capability index (merged from `main`)
+- `scripts/baseline_router.py` — small-trajectory heuristic floor
+- `AGENTS.md` — challenge briefing
 
 ---
 
 ## Known weaknesses
 
-1. Quality is off-policy (kNN + match table + routing prior).
-2. Band accuracy on test ~43% (predicted vs labeled band).
-3. Output token cost excluded; tokens are chars÷4 estimates.
+1. Band accuracy ~43% on test — routing uses **predicted** band, eval CSV also shows **labeled** band.
+2. Quality is estimated, not measured under counterfactual routing.
+3. Input tokens only; token counts are chars÷4 estimates.
+4. Validation savings exceed test — possible split distribution shift.
