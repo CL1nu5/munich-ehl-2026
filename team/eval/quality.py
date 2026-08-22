@@ -5,21 +5,19 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
-OBSERVED_KEYS = [
-    "execution_depth",
-    "friction_recovery",
-    "produced_work",
-    "tool_breadth",
-]
-
-
 def logged_outcome_quality(target: dict) -> float:
-    """0–1 proxy from labeled observed_components (logged-model execution)."""
-    comps = target.get("observed_components") or {}
-    if not comps:
+    """Recovered tool-call success rate for the logged-model execution.
+
+    This is an outcome proxy, not end-to-end task success. The raw export omits
+    the final call output, and tool failures may be environmental rather than
+    attributable to the model.
+    """
+    metrics = target.get("observed_metrics") or {}
+    outputs = float(metrics.get("tool_output_count", 0) or 0)
+    errors = float(metrics.get("tool_error_count", 0) or 0)
+    if outputs <= 0:
         return 0.5
-    vals = [float(comps.get(k, 0.0)) for k in OBSERVED_KEYS]
-    return sum(vals) / len(vals)
+    return max(0.0, min(1.0, 1.0 - errors / outputs))
 
 
 def build_match_table(

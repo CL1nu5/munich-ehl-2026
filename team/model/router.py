@@ -5,7 +5,8 @@ from .complexity import ComplexityModel
 from .features import FEATURE_NAMES, vectorize
 from .linear import SoftmaxRouter
 
-# Route among common production models seen in export.
+# Route among common anonymized ids seen in the export. Their relative capability
+# order is not published; the fallback mapping below is an explicit assumption.
 ROUTER_CLASSES = [
     "claude-fable-5",
     "claude-sonnet-5",
@@ -14,7 +15,7 @@ ROUTER_CLASSES = [
     "gpt-5.6-sol",
 ]
 
-BAND_TO_PREFERRED = {
+BAND_TO_PREFERRED = {  # assumed mapping, not organizer-provided ground truth
     "low": "gpt-5.6-terra",
     "medium": "claude-sonnet-5",
     "high": "claude-opus-5",

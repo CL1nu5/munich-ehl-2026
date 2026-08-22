@@ -438,8 +438,8 @@ function renderOverview() {
         ${tbl}
       </div>
       <div class="note warn">
-        <strong>Why this says −${vik ? Math.abs(vik.vs_logged_pct).toFixed(1) : ''}% for the Viktor baseline and not −22.2%.</strong>
-        The starter kit reports −22.2% across the whole corpus. That number leans on a trajectory grouping that collapses 929 of 953 groups to a single call, and it carries no quality estimate at all — it cannot tell you what the saving cost. Restricted to one clean, comparable stratum and scored against a quality metric, the same rule delivers ${vik ? sgn(vik.vs_logged_pct) : ''}%.
+        <strong>Why the stratum result differs from the whole-corpus baseline.</strong>
+        The starter baseline reports ${DATA.baseline ? sgn(DATA.baseline.delta_pct) : ''}% assumed input-cost change across ${DATA.baseline ? DATA.baseline.n_trajectories : ''} exported request snapshots, but it has no counterfactual quality estimate. The dashboard reconstructs recoverable earlier call inputs from each snapshot's history, so its dollar totals use a broader cost basis and are not directly comparable. Within one comparable stratum and one cost basis, the same rule delivers ${vik ? sgn(vik.vs_logged_pct) : ''}%.
       </div>
       <div class="card">
         <div class="card-t">What these numbers are not</div>

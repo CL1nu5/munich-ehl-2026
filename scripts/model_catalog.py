@@ -1,38 +1,15 @@
 #!/usr/bin/env python3
-"""Model catalog: public-benchmark evidence -> capability index -> quality-score cutoffs.
+"""Experimental model catalog: assumed evidence -> capability-score cutoffs.
 
-WHY THIS EXISTS
----------------
 `build_complexity_dataset.py` produces a 0-100 weak-supervision complexity score per
-request. A router needs the other half of the mapping: for each candidate model, the
-complexity score above which we no longer trust it. This module derives that cutoff
-from published benchmark results instead of hand-picked constants, so every threshold
-is traceable to a citation.
+request. This module supplies fitting machinery for mapping assumed model evidence to
+cutoffs on that score.
 
-THE ANONYMISATION CLAIM DOES NOT HOLD
--------------------------------------
-AGENTS.md says the `model` ids are anonymised. They are not. Every id in the export is
-a real, publicly documented model, and `scripts/pricing.json` reproduces the public
-list price of each one to the cent:
-
-    claude-opus-5    5.00 / 0.50 / 25.00   matches Anthropic's published Opus 5 price
-    claude-fable-5  10.00 / 1.00 / 50.00   matches published Fable 5 price
-    claude-sonnet-5  2.00 / 0.20 / 10.00   matches the Sonnet 5 introductory price
-                                           ($2/$10, in effect through 2026-08-31)
-    gpt-5.6-sol      5.00 / 0.50 / 30.00   matches OpenAI's Sol price
-    gpt-5.6-terra    2.00 / 0.20 / 12.00   matches Terra (after the 2026-07-30 cut)
-    gpt-5.6-luna     0.20 / 0.02 /  1.20   matches Luna (after the 2026-07-30 cut)
-
-`sol`/`terra`/`luna` read like pseudonyms but are OpenAI's actual tier names for the
-GPT-5.6 family (Sol flagship > Terra mid > Luna cheap). AGENTS.md says to trust a
-posted price sheet over the briefing when the two conflict; the price sheet, the model
-ids and the public record all agree, so public benchmark data applies directly.
-
-Everything here is stdlib-only and offline: the benchmark numbers are a frozen,
-hand-transcribed snapshot with a per-number source URL. Nothing is fetched at runtime.
-
-WHAT IS ASSUMED, AND WHERE IT CAN FAIL, is documented in LIMITATIONS at the bottom of
-this file and surfaced in the notebook. Read it before quoting any number from here.
+The export ids are anonymized. The bundled cards, benchmark values, model-to-public-name
+mapping, tier order, and prices have NOT been verified against organizer-provided notes.
+They are retained only as an experimental scaffold and must not be presented as facts.
+The CLI requires an explicit opt-in; replace the cards and pricing with approved inputs
+before using the resulting catalog in a submission.
 """
 
 from __future__ import annotations
@@ -45,6 +22,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 SNAPSHOT_DATE = "2026-08-22"
+EVIDENCE_STATUS = "UNVERIFIED ASSUMPTIONS — replace with organizer-approved evidence"
 
 # --------------------------------------------------------------------------------------
 # Benchmark panel
@@ -113,19 +91,22 @@ EXCLUDED_BENCHMARKS = {
 }
 
 SOURCES = {
-    "vals_swebench": "https://www.vals.ai/benchmarks/swebench",
-    "vellum_sonnet5": "https://www.vellum.ai/blog/claude-sonnet-5-benchmarks-explained",
-    "vellum_gpt56": "https://www.vellum.ai/blog/gpt-5-6-sol-terra-luna-explained",
-    "morph_claude": "https://www.morphllm.com/claude-benchmarks",
-    "anthropic_opus5": "https://www.anthropic.com/news/claude-opus-5",
-    "openai_gpt56": "https://openai.com/index/gpt-5-6/",
-    "codingfleet_tb": "https://codingfleet.com/blog/terminal-bench-leaderboard-2026/",
+    key: EVIDENCE_STATUS
+    for key in (
+        "vals_swebench",
+        "vellum_sonnet5",
+        "vellum_gpt56",
+        "morph_claude",
+        "anthropic_opus5",
+        "openai_gpt56",
+        "codingfleet_tb",
+    )
 }
 
 
 @dataclass
 class Observation:
-    """One published benchmark number, with provenance and reported disagreement.
+    """One assumed benchmark number with optional disagreement bounds.
 
     `low`/`high` capture genuine cross-source or cross-harness disagreement. They are
     not error bars in a statistical sense -- they are the range the public record
@@ -243,7 +224,7 @@ def _catalog_cards() -> list[ModelCard]:
             notes="The interesting router target: mid-tier price, but out-scores the "
                   "previous-generation flagship on the agentic benchmark that best "
                   "matches this workload. Priced at the $2/$10 introductory rate, which "
-                  "the price sheet uses and which expires 2026-08-31.",
+                  "the bundled assumed price table uses.",
         ),
         ModelCard(
             model_id="claude-sonnet-4-6", family="claude", generation="4.6", tier="mid",
@@ -653,6 +634,7 @@ def build_catalog(
                 m["complexity_cutoff"] = top
 
     return {
+        "evidence_status": EVIDENCE_STATUS,
         "snapshot_date": SNAPSHOT_DATE,
         "risk_aversion": risk_aversion,
         "quantile_floor": quantile_floor,
@@ -741,33 +723,18 @@ def route_trajectory(complexity_scores: Sequence[float], catalog: dict,
 
 
 LIMITATIONS = [
-    "Benchmark scores are a frozen manual transcription (2026-08-22), not a live feed. "
-    "Re-check them before reusing this catalog.",
-    "Published benchmarks measure end-to-end task success on THEIR task distribution. "
-    "Treating that as a ceiling on THIS dataset's complexity score assumes a model's "
-    "failures are the hardest tasks. Models actually fail idiosyncratically, so a "
-    "cutoff is a central tendency, not a guarantee.",
+    "The export ids are anonymized. The bundled identities, benchmark values, tier "
+    "order, sources, and prices are unverified assumptions, not organizer facts.",
+    "Do not quote or submit this catalog until every card has been replaced or verified "
+    "against organizer-approved evidence.",
+    "Benchmarks measure end-to-end task success on their own task distributions. "
+    "Mapping them to this dataset's complexity score is an unvalidated transfer.",
     "The complexity score is itself weak supervision, not measured quality. The cutoffs "
     "inherit every assumption baked into its weights.",
-    "Harness and effort settings move scores more than model identity does at the top of "
-    "the range: Opus 5's Terminal-Bench result spans 81.3-89.1 depending on refusal "
-    "handling and effort. Any cutoff derived from a single number is over-precise.",
-    "Coverage is ragged. Opus 5 has no public SWE-bench Pro or AA-index result, the "
-    "GPT-5.6 tiers have no SWE-bench Verified, and claude-opus-4-6 has no evidence at "
-    "all and is imputed from Opus 4.8. Thin evidence widens the safety margin but does "
-    "not make the estimate sound.",
-    "Several GPT-5.6 numbers trace to a single secondary source. Sources also disagree "
-    "with each other (Fable 5 Terminal-Bench: 80.5 / 86.0 / 88.0), and secondary "
-    "aggregators contradict each other on Sonnet 5's SWE-bench Verified badly enough "
-    "that the benchmark was left out of its record rather than guessed.",
     "Selection is capability-only: prices are recorded on each model card but never "
-    "consulted when ranking or routing. The router picks the weakest model that still "
-    "covers a request, so it minimises over-provisioned intelligence, not spend. Two "
-    "models the benchmarks cannot separate are interchangeable here even when one costs "
-    "50x the other -- reintroduce a cost term if that is not what you want.",
+    "consulted when ranking or routing, so it does not optimize spend.",
     "Because nothing in this catalog optimises cost, it cannot on its own produce the "
-    "cost-quality frontier the challenge asks for as a headline artifact. It supplies "
-    "the quality axis; the cost axis has to come from scripts/cost_model.py.",
+    "cost-quality frontier the challenge asks for.",
 ]
 
 
@@ -780,7 +747,19 @@ def main() -> None:
     parser.add_argument("--output", default="results/model_catalog.json")
     parser.add_argument("--risk-aversion", type=float, default=0.10)
     parser.add_argument("--quantile-floor", type=float, default=0.15)
+    parser.add_argument(
+        "--allow-unverified-assumptions",
+        action="store_true",
+        help="explicitly run the bundled experimental, unverified model cards",
+    )
     args = parser.parse_args()
+
+    if not args.allow_unverified_assumptions:
+        raise SystemExit(
+            "model catalog disabled: bundled identities/benchmarks are unverified assumptions; "
+            "replace them with organizer-approved evidence or pass "
+            "--allow-unverified-assumptions for local experimentation"
+        )
 
     path = Path(args.targets)
     if not path.exists():
@@ -808,7 +787,8 @@ def main() -> None:
               f"{m['evidence_coverage']:>5.2f}  {m['complexity_cutoff']:>6.2f}{flag}")
     print("exp = fitted expected score on a panel-average benchmark (used for cutoffs)")
     print("naive = coverage-biased composite, shown only for contrast")
-    print("* frontier (routing fallback)   ~ imputed, no public evidence")
+    print("* frontier (routing fallback)   ~ imputed, no verified evidence")
+    print(EVIDENCE_STATUS)
     print("selection is capability-only; prices are recorded but never consulted")
     print(f"wrote {out}")
 

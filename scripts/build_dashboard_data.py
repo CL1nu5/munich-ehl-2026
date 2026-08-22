@@ -74,6 +74,28 @@ def turn_ends(items):
     return ends
 
 
+def call_input_ends(items):
+    """Prefix lengths for recovered prior calls plus the exported current call.
+
+    Assistant messages, reasoning, and tool calls are outputs of a prior model
+    invocation, so that invocation's input ends immediately before the output
+    group. The complete exported input is the input to the current call whose
+    output is missing from the dataset.
+    """
+    ends = []
+    in_model_output = False
+    for index, item in enumerate(items):
+        item_type = item.get("type")
+        assistant = (item_type == "message" or item_type is None) and item.get("role") == "assistant"
+        is_model_output = item_type in CALL or item_type == "reasoning" or assistant
+        if is_model_output and not in_model_output:
+            ends.append(index)
+        in_model_output = is_model_output
+    if not ends or ends[-1] != len(items):
+        ends.append(len(items))
+    return ends
+
+
 def pairs(items):
     opened = {}
     for it in items:
@@ -99,7 +121,7 @@ def task_cost(items, model):
     """Cache-aware input cost for one task served entirely by `model`."""
     pu, pc, _ = price(model)
     prev, cost = 0, 0.0
-    for e in turn_ends(items):
+    for e in call_input_ends(items):
         prefix = est(items[:prev]) if prev else 0
         total = est(items[:e])
         cost += (max(0, total - prefix) * pu + prefix * pc) / 1e6
@@ -308,13 +330,21 @@ def main():
         if not ts:
             return None
 
+        cost_cache = {}
+
+        def cost_of(task, model):
+            key = (id(task["items"]), model)
+            if key not in cost_cache:
+                cost_cache[key] = task_cost(task["items"], model)
+            return cost_cache[key]
+
         def evaluate(pick, name, note):
             cost = qn = qd = 0.0
             cheap_n = 0
             for t in ts:
                 m = pick(t)
                 cheap_n += (m == cheap)
-                cost += task_cost(t["items"], m)
+                cost += cost_of(t, m)
                 qn += (1 - fr.get(m, 0.05)) * t["calls"]
                 qd += t["calls"]
             return dict(name=name, note=note, cost_usd=round(cost, 2),
@@ -372,7 +402,7 @@ def main():
             generated_from="trajectories_v1_01.jsonl",
             token_basis="ESTIMATED (chars/4) — the export has no usage field",
             output_tokens="EXCLUDED — the export has no output field",
-            cost_basis="cache-aware input cost; prefix billed at cached rate within a task",
+            cost_basis="cache-aware reconstructed call-input cost; prefix billed at cached rate within a task",
             quality_basis="tool-call outcome: exit_code==0 or success==true",
             frontier_basis="DIRECT METHOD estimate — not SNIPS/doubly-robust yet",
         ),
@@ -416,6 +446,7 @@ def main():
         caveats=[
             "All token counts are estimated as chars/4 — the export ships no usage field.",
             "Output tokens are excluded entirely — the export ships no output field.",
+            "Earlier calls are reconstructed from assistant/tool history inside each exported request; the final call output is missing.",
             "Quality = tool-call success (exit_code 0 / success true), covering 92.4% of calls. It is a proxy for task success, not task success itself.",
             "Cross-family (GPT vs Claude) comparison is not identifiable: the toolsets differ in their code-execution substrate.",
             "claude-sonnet-4-6 (n=1) and claude-opus-4-6 (n=2) have no usable support and are excluded.",

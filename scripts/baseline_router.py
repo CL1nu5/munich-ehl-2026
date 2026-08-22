@@ -11,9 +11,9 @@ from pathlib import Path
 from load_trajectories import iter_requests, group_trajectories, est_tokens
 from cost_model import trajectory_cost, logged_route, load_pricing
 
-# Cheaper sibling per family, per scripts/pricing.json (official prices): claude-fable-5
-# is the most expensive claude model, so route to claude-sonnet-5 instead; gpt-5.6-luna
-# is the cheapest gpt model.
+# Cheaper sibling per family under the ASSUMED prices in scripts/pricing.json.
+# The anonymized ids have no applicable public price sheet; replace this file if
+# the organizers publish one and state the assumption in every result.
 CHEAP = {"claude": "claude-sonnet-5", "gpt": "gpt-5.6-luna"}
 
 def cheap_for(model):

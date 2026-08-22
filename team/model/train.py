@@ -21,7 +21,7 @@ from model.complexity import ComplexityModel  # noqa: E402
 from model.features import (  # noqa: E402
     FEATURE_NAMES,
     features_for_request,
-    load_validation_feature_lookup,
+    load_feature_lookup,
     vectorize,
 )
 from model.linear import save_checkpoint  # noqa: E402
@@ -58,29 +58,24 @@ def band_acc(y_true: list[str], y_pred: list[str]) -> float:
 def load_router_training(export_path: Path, lookup: dict) -> tuple[list[dict], list[str], list[str]]:
     """First call per trajectory = routing decision point."""
     if export_path.is_dir():
-        groups = group_trajectories(r for _, _, r in iter_requests(export_path))
+        annotated = []
+        for chunk, line_no, req in iter_requests(export_path):
+            row = dict(req)
+            row["_request_id"] = f"{chunk}:{line_no + 1}"
+            annotated.append(row)
+        groups = group_trajectories(annotated)
         items = []
-        for key, calls in groups.items():
+        for _key, calls in groups.items():
             req = calls[0]
-            chunk = export_path.name if export_path.is_dir() else export_path.parent.name
-            # rebuild id unknown here; use group key only
-            items.append((key, req, req["model"]))
+            items.append((req["_request_id"], req, req["model"]))
         features, models, ids = [], [], []
         for key, req, model in items:
-            features.append(features_for_request(req, lookup=lookup))
+            features.append(features_for_request(req, request_id=key, lookup=lookup))
             models.append(model)
             ids.append(key)
         return features, models, ids
 
     # single file path
-    groups = {}
-    with open(export_path) as f:
-        for i, line in enumerate(f, start=1):
-            if not line.strip():
-                continue
-            req = json.loads(line)
-            rid = f"{export_path.name}:{i}"
-            groups.setdefault(rid, req)
     # treat each line as its own routing point (matches validation granularity)
     features, models, ids = [], [], []
     with open(export_path) as f:
@@ -93,6 +88,18 @@ def load_router_training(export_path: Path, lookup: dict) -> tuple[list[dict], l
             models.append(req["model"])
             ids.append(rid)
     return features, models, ids
+
+
+def load_evaluation_ids(datasets_dir: Path) -> set[str]:
+    """IDs that must never be used to train the logged-policy classifier."""
+    ids = set()
+    for split in ("validation", "test"):
+        path = datasets_dir / f"{split}_inputs.jsonl"
+        if not path.exists():
+            continue
+        with open(path) as handle:
+            ids.update(json.loads(line)["request_id"] for line in handle if line.strip())
+    return ids
 
 
 def split_indices(n: int, frac: float, seed: int) -> tuple[list[int], list[int]]:
@@ -114,7 +121,7 @@ def main():
 
     datasets_dir = Path(args.datasets)
     out_dir = Path(args.out)
-    lookup = load_validation_feature_lookup(datasets_dir)
+    lookup = load_feature_lookup(datasets_dir)
 
     # --- Stage 1: complexity model ---
     cx_feats, cx_labels, cx_ids = load_labeled_complexity(datasets_dir)
@@ -139,10 +146,14 @@ def main():
         "band_accuracy": round(band_acc(true_bands, pred_bands), 3),
     }
 
-    # --- Stage 2: router on export (exclude validation ids from train) ---
+    # --- Stage 2: router on export (exclude every evaluation id from train) ---
     val_ids = set(cx_ids)
+    evaluation_ids = load_evaluation_ids(datasets_dir)
     rt_feats, rt_models, rt_ids = load_router_training(Path(args.export), lookup)
-    router_train = [(f, m) for f, m, rid in zip(rt_feats, rt_models, rt_ids) if rid not in val_ids]
+    router_train = [
+        (f, m) for f, m, rid in zip(rt_feats, rt_models, rt_ids)
+        if rid not in evaluation_ids
+    ]
     router_test = [(f, m) for f, m, rid in zip(rt_feats, rt_models, rt_ids) if rid in val_ids]
 
     router = RouterModel(complexity=complexity)
@@ -167,6 +178,7 @@ def main():
     router_metrics = {
         "n_train": len(router_train),
         "n_test_validation_ids": len(router_test),
+        "n_excluded_evaluation_ids": sum(rid in evaluation_ids for rid in rt_ids),
         "exact_accuracy": round(rt_acc, 3),
         "tier_accuracy": round(tier_acc, 3),
         "classes": ROUTER_CLASSES,

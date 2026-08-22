@@ -116,15 +116,18 @@ flowchart TB
 
 Maps complexity + static features → one of five production model ids seen in the export.
 
-### Candidate models
+### Candidate route labels
 
-| Class | Typical role |
-|-------|----------------|
-| `gpt-5.6-terra` | Cheaper GPT tier |
-| `gpt-5.6-sol` | Mid GPT tier |
-| `claude-sonnet-5` | Balanced Claude |
-| `claude-opus-5` | Capable Claude |
-| `claude-fable-5` | Premium Claude |
+The ids are anonymized. The classifier uses the five well-supported ids below as labels;
+their relative capability order is not organizer-provided.
+
+| Class | Use in this implementation |
+|-------|----------------------------|
+| `gpt-5.6-terra` | assumed low-band fallback |
+| `gpt-5.6-sol` | classifier label |
+| `claude-sonnet-5` | assumed medium-band fallback |
+| `claude-opus-5` | assumed high-band fallback |
+| `claude-fable-5` | classifier label |
 
 ### Augmented feature vector (15 dims)
 
@@ -154,8 +157,8 @@ flowchart LR
 
 - **Source:** `export/trajectories_v1_01.jsonl` — one routing point per request line
 - **Labels:** logged `model` field
-- **Exclusion:** all `validation` / `test` `request_id`s removed from router training (no label leakage)
-- **~846** training points after filtering
+- **Exclusion:** all `validation` / `test` `request_id`s removed from router training
+- The validation set is used for development diagnostics; the test set remains held out
 
 ---
 
@@ -230,13 +233,18 @@ python team/eval/evaluate.py --split both
 
 | Split | n | Cost Δ (team) | Quality Δ (est.) | Complexity band acc |
 |-------|---|---------------|------------------|---------------------|
-| Validation | 154 | **−33.1%** | +0.014 | 90.3% (train holdout) |
-| Test | 148 | **−36.5%** | +0.009 | **83.8%** |
-| Full export | 978 trajs | **−29.3%** | — | — |
+| Validation (development) | 154 | −5.3% | −3.32 pp | 87.7% |
+| Test (held out) | 148 | **−3.2%** | **−2.66 pp** | **83.8%** |
+| Full export | 1,000 snapshots | −21.8% | — | — |
 
-Baseline (official starter): −15.1% cost on validation, −12.8% on test.
+The simple baseline is better on both evaluated axes: validation −15.5% cost / −0.37 pp
+proxy quality, test −12.1% / −0.40 pp. The current learned router is therefore not a
+submission-ready policy. The full-export cost number has no counterfactual quality estimate.
 
-**Quality estimation:** mean of four `observed_components` from labeled targets; counterfactual routes use a `(complexity_band, model)` match table fit on validation. See `team/eval/quality.py` for failure modes.
+**Quality estimation:** recovered tool-call success rate from visible tool outputs;
+counterfactual routes use a `(complexity_band, model)` match table fit on validation.
+This is a proxy, not end-to-end task success, and the final call output is unavailable.
+See `team/eval/quality.py` for failure modes.
 
 ---
 
@@ -245,7 +253,12 @@ Baseline (official starter): −15.1% cost on validation, −12.8% on test.
 1. **Observed difficulty is predicted from static text only** — true observed signals need post-execution traces.
 2. **Router exact-match accuracy is low (~16%)** — Viktor’s logged routing is not fully explained by our features; the value is in cost–quality tradeoffs, not replaying logs.
 3. **Off-policy quality** relies on a sparse match table; many cells have &lt; 3 samples.
-4. **All token counts are estimates** (chars ÷ 4); output tokens are excluded from cost.
+4. **Tool success is only a proxy** — environmental failures can be misattributed and
+   the missing final output cannot be scored.
+5. **Cross-family routes are not identified** — GPT and Claude deployments expose
+   different execution substrates, yet this router can choose across families.
+6. **Fallback capability order is assumed** — the anonymized tier order is not published.
+7. **All token counts are estimates** (chars ÷ 4); output tokens are excluded from cost.
 
 ---
 

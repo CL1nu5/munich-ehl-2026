@@ -42,6 +42,7 @@ def annotate_groups(export_dir: Path) -> dict:
         row = dict(req)
         row["_chunk"] = chunk
         row["_line"] = line_no + 1  # 1-based, matches validation request_id
+        row["_request_id"] = f"{chunk}:{line_no + 1}"
         annotated.append(row)
     return group_trajectories(annotated)
 
@@ -72,7 +73,8 @@ def route_trajectory_baseline(calls: list[dict]) -> str:
     return calls[0]["model"]
 
 def route_trajectory_team(key: str, calls: list[dict], router: RouterModel, lookup: dict) -> str:
-    feat = features_for_request(calls[0], request_id=key, lookup=lookup)
+    request_id = calls[0].get("_request_id", key)
+    feat = features_for_request(calls[0], request_id=request_id, lookup=lookup)
     return router.route(feat, logged_model=calls[0]["model"])["routed_model"]
 
 
@@ -348,11 +350,14 @@ def write_split_outputs(result: dict, out_dir: Path) -> None:
     payload = {
         "schema_version": "munich_ehl_eval_v1",
         "split": split,
-        "quality_signal": "mean(observed_components); off-policy via band×model match table (fit on validation)",
+        "quality_signal": "recovered tool-call success rate; off-policy via band×model match table (fit on validation)",
         "failure_modes": [
             "match table built from validation only",
             "match cells with n<3 fall back to model or global mean",
             "routed!=logged assumes quality independent of task beyond band",
+            "tool-call success is a proxy, not end-to-end task success",
+            "the final call output is absent and cannot contribute to the proxy",
+            "tool failures may be caused by the environment rather than the model",
             "output tokens excluded from cost; tokens are chars/4 estimates",
         ],
         "complexity_metrics": result["complexity_metrics"],

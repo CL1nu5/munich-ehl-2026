@@ -18,7 +18,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 from cost_model import load_pricing, logged_route, trajectory_cost  # noqa: E402
 from load_trajectories import group_trajectories, iter_requests  # noqa: E402
-from model.features import features_for_request, load_validation_feature_lookup  # noqa: E402
+from model.features import features_for_request, load_feature_lookup  # noqa: E402
 from model.router import RouterModel  # noqa: E402
 
 
@@ -32,7 +32,8 @@ def route_trajectory(
 ) -> list[str]:
     """Pick model from first call's static features; apply to whole trajectory."""
     first = calls[0]
-    feat = features_for_request(first, request_id=key, lookup=lookup)
+    request_id = first.get("_request_id", key)
+    feat = features_for_request(first, request_id=request_id, lookup=lookup)
     chosen = router.route(feat, logged_model=first["model"])["routed_model"]
     return [chosen for _ in calls]
 
@@ -47,11 +48,16 @@ def main():
 
     export_path = Path(args.export)
     router = load_router(Path(args.checkpoint))
-    lookup = load_validation_feature_lookup(args.datasets)
+    lookup = load_feature_lookup(args.datasets)
     pricing = load_pricing()
 
     if export_path.is_dir():
-        groups = group_trajectories(r for _, chunk, r in iter_requests(export_path))
+        annotated = []
+        for chunk, line_no, req in iter_requests(export_path):
+            row = dict(req)
+            row["_request_id"] = f"{chunk}:{line_no + 1}"
+            annotated.append(row)
+        groups = group_trajectories(annotated)
     else:
         groups = {}
         with open(export_path) as f:
