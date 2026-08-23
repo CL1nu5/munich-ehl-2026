@@ -9,7 +9,8 @@ task's opening messages (system + first user text), then ordering by history
 length (each request's input contains every item of the previous one).
 
 Usage: python scripts/load_trajectories.py export/
-Importable: iter_requests, group_trajectories, est_tokens, first_user_text.
+Importable: iter_requests, group_trajectories, est_tokens, first_system_text,
+first_user_text.
 """
 import json, sys, hashlib
 from pathlib import Path
@@ -35,8 +36,21 @@ def first_user_text(req):
             return " ".join(p.get("text", "") for p in c if p.get("type") == "input_text")
     return ""
 
+
+def first_system_text(req):
+    """Text of the first system message, part of a trajectory's opening key."""
+    for item in req["input"]:
+        if item.get("role") == "system":
+            c = item.get("content")
+            if isinstance(c, str): return c
+            return " ".join(p.get("text", "") for p in c if p.get("type") == "input_text")
+    return ""
+
 def group_key(req):
-    return hashlib.sha1(first_user_text(req)[:2000].encode()).hexdigest()[:16]
+    # Both opening messages are needed.  Reusing a user instruction under a
+    # different system context is a different task, not a repeated snapshot.
+    opening = f"{first_system_text(req)}\n{first_user_text(req)[:2000]}"
+    return hashlib.sha1(opening.encode()).hexdigest()[:16]
 
 def group_trajectories(requests):
     """Group requests by task and order each group by input length (= call order)."""

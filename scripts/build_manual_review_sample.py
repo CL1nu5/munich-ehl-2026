@@ -17,6 +17,7 @@ from build_feature_table import content_text, opening_snapshot, routing_text
 from load_trajectories import iter_requests
 
 
+REVIEW_CHUNK = "trajectories_v1_01.jsonl"
 UNKNOWN_PARTIAL = {25, 385, 390}
 UNKNOWN_UNJUDGEABLE = {564, 984}
 
@@ -175,6 +176,10 @@ def main():
 
     sample = []
     for row in evaluation:
+        # The fixed line-number judgments below were made against chunk 01.
+        # Never apply them to another chunk that happens to have the same line.
+        if row["source_chunk"] != REVIEW_CHUNK:
+            continue
         line = int(row["source_line"])
         if row["y_outcome_label"] == "UNKNOWN":
             manual_label, confidence, reason = unknown_judgment(line)

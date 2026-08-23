@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
-"""Audit the starter loader's multi-request trajectory candidates.
+"""Audit trajectory candidates that share a truncated opening message.
 
-The starter groups on the first 2,000 characters of the first user message.
-For this export, all 24 multi-request candidates were manually reviewed and
-are separate scheduled/event runs rather than growing histories of one task.
-This script records the evidence and writes explicit, reproducible overrides.
+Candidates are split only when their full opening messages differ and their
+inputs do not form a growing item-prefix chain. Any remaining ambiguous group
+halts the pipeline for manual review instead of silently becoming a trajectory.
 
 Usage: python scripts/audit_trajectory_groups.py export/
 """
@@ -16,21 +15,6 @@ import json
 from pathlib import Path
 
 from load_trajectories import first_user_text, group_trajectories, iter_requests
-
-
-# Manually reviewed against run timestamps/event ids, model consistency, and
-# item-level history growth. Keeping this explicit makes the data decision
-# auditable instead of hiding it in a fuzzy matcher.
-MANUAL_SPLIT_KEYS = {
-    "027a7e59dcc1ed35", "0b5041cdb0f6548a", "15b6394311ee93a6",
-    "20aa5abee23cd5b4", "2a09408f6a3369cb", "2e1be2c096cbd29c",
-    "368396b4e15ab06d", "3f63945c35f26ca5", "4215b6f24c6eebff",
-    "7c496702d32a0883", "85bda2a6ab229bd3", "85ea85e3070e6cbb",
-    "86f75d8a692327ad", "8d1a4d2d1b4b37f5", "8fd2f7ea814f4752",
-    "965948a699d61f6d", "e2abb3aa1abdff7b", "e3af5cbdc023e6a0",
-    "47d7c8997f5801df", "52ca580b2115132f", "563b4fee87f649ae",
-    "767e735a678c17cf", "e71e8dac0b90e4ca", "ef9f29a29de19c9b",
-}
 
 
 def common_prefix_chars(texts):
@@ -64,12 +48,20 @@ def main():
     groups = group_trajectories(req for _, _, req in records)
     multi = {key: calls for key, calls in groups.items() if len(calls) > 1}
 
-    unexpected = set(multi) - MANUAL_SPLIT_KEYS
-    missing = MANUAL_SPLIT_KEYS - set(multi)
-    if unexpected or missing:
+    ambiguous = []
+    for key, calls in multi.items():
+        texts = [first_user_text(call) for call in calls]
+        ordered = sorted(calls, key=lambda call: len(call["input"]))
+        prefix_chain = all(
+            is_item_prefix(ordered[i]["input"], ordered[i + 1]["input"])
+            for i in range(len(ordered) - 1)
+        )
+        if len(set(texts)) == 1 or prefix_chain:
+            ambiguous.append(key)
+    if ambiguous:
         raise SystemExit(
-            "manual audit keys do not match this export; review required: "
-            f"unexpected={sorted(unexpected)} missing={sorted(missing)}"
+            "ambiguous candidate groups require manual review: "
+            f"{sorted(ambiguous)}"
         )
 
     audit_rows = []
@@ -82,10 +74,7 @@ def main():
             for i in range(len(ordered) - 1)
         )
         models = sorted({call.get("model", "unknown") for call in calls})
-        reason = (
-            "distinct recurring/event runs; full opening messages differ; no exact "
-            "growing-history prefix"
-        )
+        reason = "full opening messages differ; no exact growing-history prefix"
         if len(models) > 1:
             reason += "; mixed logged models violate the confirmed trajectory premise"
 
