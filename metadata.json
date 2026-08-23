@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0Q0PKE95Z9Y8BX6X4EPGGZ4",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "scripts/audit_trajectory_groups.py",
+    "scripts/build_manual_review_sample.py",
+    "scripts/load_trajectories.py"
+  ],
+  "sessions": [
+    {
+      "metadata": "/0/metadata.json",
+      "transcript": "/0/full.jsonl",
+      "compact_transcript": "/0/transcript.jsonl",
+      "content_hash": "/0/content_hash.txt",
+      "prompt": "/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 24316,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 874942,
+    "output_tokens": 8884,
+    "api_call_count": 18
+  }
+}
