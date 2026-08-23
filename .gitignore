@@ -5,3 +5,5 @@ submission/
 __pycache__/
 *.tar.gz
 .venv/
+.DS_Store
+.pytest_cache/

@@ -2,6 +2,20 @@
 
 Offline, dependency-free router for the TUM.ai Viktor Challenge.
 
+## Project layout
+
+- `scripts/` — the complete offline pipeline: export reconstruction, feature
+  and outcome-label construction, training, routing, evaluation, and demo.
+- `models/` — checked-in router artifact and explicitly documented
+  benchmark-capability assumptions.
+- `notebooks/` — pre-rendered analysis notebooks; figures and regenerated
+  evaluation outputs remain local in `results/`.
+- `export/` — the challenge-use-only input data. It is intentionally ignored
+  and must never be committed or redistributed.
+
+The repository has no external runtime dependencies; Python's standard library
+is sufficient for the routing pipeline.
+
 ## Final pipeline
 
 ```bash
