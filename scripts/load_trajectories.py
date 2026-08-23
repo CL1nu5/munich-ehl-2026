@@ -4,10 +4,9 @@
 The export is chunked JSONL — `trajectories_v1_<index>.jsonl.tar.gz` archives that
 extract to `export/trajectories_v1_<index>.jsonl` (any `export/*.jsonl` is read). Each line is one LLM
 request: `model`, `input` (Responses-format item list), `tools`. There are no
-trajectory ids — requests of the same task are recovered conservatively from
-exact item-prefix containment within requests that share the same first user
-message. This avoids merging unrelated tasks that happen to reuse a boilerplate
-opening prompt.
+trajectory ids — requests of the same task are recovered by grouping on the
+task's opening messages (system + first user text), then ordering by history
+length (each request's input contains every item of the previous one).
 
 Usage: python scripts/load_trajectories.py export/
 Importable: iter_requests, group_trajectories, est_tokens, first_user_text.
@@ -37,54 +36,14 @@ def first_user_text(req):
     return ""
 
 def group_key(req):
-    """Stable candidate-group key using the complete first user message."""
-    text = first_user_text(req)
-    if text:
-        opening = {"first_user": text}
-    else:
-        opening = {"no_user_input": req.get("input", [])}
-    raw = json.dumps(opening, sort_keys=True, separators=(",", ":"))
-    return hashlib.sha256(raw.encode()).hexdigest()[:24]
-
-def _is_strict_input_prefix(shorter, longer):
-    a, b = shorter["input"], longer["input"]
-    return len(a) < len(b) and a == b[:len(a)]
+    return hashlib.sha1(first_user_text(req)[:2000].encode()).hexdigest()[:16]
 
 def group_trajectories(requests):
-    """Reconstruct conservative exact-prefix chains in call order.
-
-    The first user message is only a candidate key: repeated cron prompts and
-    templates can be identical across unrelated tasks. A request joins a chain
-    only when the chain's latest input is an exact strict prefix of its input.
-    Ambiguous branches become separate trajectories instead of being merged.
-    """
-    candidates = defaultdict(list)
-    for req in requests:
-        candidates[group_key(req)].append(req)
-
-    trajectories = {}
-    for base_key, candidate_reqs in sorted(candidates.items()):
-        chains = []
-        ordered = sorted(
-            candidate_reqs,
-            key=lambda r: (
-                len(r["input"]),
-                hashlib.sha256(
-                    json.dumps(r["input"], sort_keys=True, separators=(",", ":")).encode()
-                ).hexdigest(),
-            ),
-        )
-        for req in ordered:
-            compatible = [chain for chain in chains if _is_strict_input_prefix(chain[-1], req)]
-            if compatible:
-                max(compatible, key=lambda chain: len(chain[-1]["input"])).append(req)
-            else:
-                chains.append([req])
-
-        for index, chain in enumerate(chains):
-            key = base_key if len(chains) == 1 else f"{base_key}-{index + 1}"
-            trajectories[key] = chain
-    return trajectories
+    """Group requests by task and order each group by input length (= call order)."""
+    groups = defaultdict(list)
+    for req in requests: groups[group_key(req)].append(req)
+    for k in groups: groups[k].sort(key=lambda r: len(r["input"]))
+    return dict(groups)
 
 def est_tokens(obj):
     """Crude token estimate: serialized chars / 4. There is NO usage field in the
