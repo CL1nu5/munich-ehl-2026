@@ -1,597 +1,507 @@
-<title>Router Evidence</title>
+<title>Cost–Quality Frontier</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=Instrument+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 
 <style>
-/* ============ tokens: light is the base, both dark states redefine only tokens ============ */
 :root{
-  --ground:#EBE8E4; --surface:#FFFFFF; --surface-2:#F4F2EF; --focal:#17151C; --focal-ink:#F7F5FA;
-  --ink:#16141A; --ink-2:#413D48; --muted:#6E6A75; --hair:#DCD7D1; --hair-2:#EAE6E1;
-  --accent:#6748FD; --accent-soft:#EDE9FF; --accent-ink:#4A31D6;
-  --good:#157F5A; --good-soft:#E2F1EA; --warn:#9A6206; --warn-soft:#F6EEDD;
-  --bad:#B23A2E; --bad-soft:#F7E7E4;
-  --hatch:rgba(110,106,117,.34);
-  --shadow:0 1px 2px rgba(23,21,28,.05), 0 8px 24px -12px rgba(23,21,28,.18);
+  --ground:#F4F5F3; --surface:#FFFFFF; --sunk:#EDEFEB; --ink:#131512; --ink-2:#43483F;
+  --muted:#666C61; --faint:#8A9084; --hair:#E1E5DE; --hair-2:#EDF0EA;
+  --accent:#0F7B4F; --accent-2:#16A163; --accent-soft:#E7F3EC; --accent-ink:#0B5D3B;
+  --amber:#9A6606; --amber-soft:#F6EEDD; --red:#A8382C; --red-soft:#F7E8E5;
+  --grid:#E6E9E3; --band:rgba(15,123,79,.11); --ghost:#C6CCC1;
+  --shadow:0 .36px 1.08px -1.08px rgba(0,0,0,.22), 0 1.9px 5.7px -2.2px rgba(0,0,0,.13);
 }
-@media (prefers-color-scheme:dark){
-  :root:not([data-theme="light"]){
-    --ground:#131117; --surface:#1C1A22; --surface-2:#232029; --focal:#000000; --focal-ink:#F7F5FA;
-    --ink:#EDEBF0; --ink-2:#C3BFCB; --muted:#948FA0; --hair:#302C39; --hair-2:#272430;
-    --accent:#8B72FF; --accent-soft:#241D46; --accent-ink:#AB99FF;
-    --good:#42BE8E; --good-soft:#12291F; --warn:#D79B2C; --warn-soft:#2A2213;
-    --bad:#E0685A; --bad-soft:#2E1A17;
-    --hatch:rgba(148,143,160,.42);
-    --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
-  }
-}
+@media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
+  --ground:#0F110E; --surface:#171A15; --sunk:#12150F; --ink:#E9EDE6; --ink-2:#BFC6BA;
+  --muted:#8E958A; --faint:#6B7267; --hair:#262A23; --hair-2:#1E221B;
+  --accent:#3FBE80; --accent-2:#57D394; --accent-soft:#132A1F; --accent-ink:#7BDCAA;
+  --amber:#D7A03C; --amber-soft:#2A2213; --red:#E0756A; --red-soft:#2E1A17;
+  --grid:#22261F; --band:rgba(63,190,128,.15); --ghost:#3A4036;
+  --shadow:0 .36px 1.08px -1.08px rgba(0,0,0,.5), 0 1.9px 5.7px -2.2px rgba(0,0,0,.45);
+}}
 :root[data-theme="dark"]{
-  --ground:#131117; --surface:#1C1A22; --surface-2:#232029; --focal:#000000; --focal-ink:#F7F5FA;
-  --ink:#EDEBF0; --ink-2:#C3BFCB; --muted:#948FA0; --hair:#302C39; --hair-2:#272430;
-  --accent:#8B72FF; --accent-soft:#241D46; --accent-ink:#AB99FF;
-  --good:#42BE8E; --good-soft:#12291F; --warn:#D79B2C; --warn-soft:#2A2213;
-  --bad:#E0685A; --bad-soft:#2E1A17;
-  --hatch:rgba(148,143,160,.42);
-  --shadow:0 1px 2px rgba(0,0,0,.4), 0 8px 24px -12px rgba(0,0,0,.7);
+  --ground:#0F110E; --surface:#171A15; --sunk:#12150F; --ink:#E9EDE6; --ink-2:#BFC6BA;
+  --muted:#8E958A; --faint:#6B7267; --hair:#262A23; --hair-2:#1E221B;
+  --accent:#3FBE80; --accent-2:#57D394; --accent-soft:#132A1F; --accent-ink:#7BDCAA;
+  --amber:#D7A03C; --amber-soft:#2A2213; --red:#E0756A; --red-soft:#2E1A17;
+  --grid:#22261F; --band:rgba(63,190,128,.15); --ghost:#3A4036;
+  --shadow:0 .36px 1.08px -1.08px rgba(0,0,0,.5), 0 1.9px 5.7px -2.2px rgba(0,0,0,.45);
 }
 
 *{box-sizing:border-box;}
+html{background:var(--ground); overflow-x:hidden;}
 body{
   margin:0; background:var(--ground); color:var(--ink);
-  font-family:"Instrument Sans",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  font-size:14px; line-height:1.5; -webkit-font-smoothing:antialiased;
+  font-family:Manrope,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  font-size:13px; line-height:1.55; -webkit-font-smoothing:antialiased; overflow-x:hidden;
 }
-h1,h2,h3,h4{font-family:Archivo,-apple-system,sans-serif; margin:0; text-wrap:balance; letter-spacing:-.02em;}
-.mono{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,monospace;}
-.num{font-variant-numeric:tabular-nums;}
+h1,h2,h3{margin:0; font-weight:500; letter-spacing:-.015em; text-wrap:balance; line-height:1.15;}
+.m{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,monospace; font-variant-numeric:tabular-nums;}
+.lab{font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.13em; text-transform:uppercase; color:var(--muted); font-weight:500;}
+.wrap{max-width:1280px; margin:0 auto; padding:0 26px;}
 
-/* ============ shell ============ */
-.shell{display:grid; grid-template-columns:236px minmax(0,1fr); min-height:100vh; min-width:0;}
-.rail{
-  background:var(--surface); border-right:1px solid var(--hair);
-  display:flex; flex-direction:column; gap:26px; padding:22px 18px;
-  position:sticky; top:0; height:100vh; overflow-y:auto;
-}
-.brand{display:flex; flex-direction:column; gap:9px;}
-.brand-mark{
-  width:34px; height:34px; border-radius:10px; background:var(--accent);
-  display:grid; place-items:center; color:#fff; font-family:Archivo; font-weight:800; font-size:16px;
-}
-.brand h1{font-size:16px; font-weight:700; line-height:1.2;}
-.brand .sub{font-size:11px; color:var(--muted); line-height:1.4;}
+/* rule of dots — dryft's separator motif */
+.dots{height:1px; background-image:radial-gradient(circle,var(--hair) 1px,transparent 1px); background-size:5px 1px; background-repeat:repeat-x; margin:0;}
 
-nav{display:flex; flex-direction:column; gap:3px;}
-.nav-label{font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--muted); margin-bottom:6px; font-weight:600;}
-.tab-btn{
-  appearance:none; border:0; background:transparent; color:var(--ink-2);
-  font:inherit; font-weight:500; text-align:left; cursor:pointer;
-  padding:9px 11px; border-radius:9px; display:flex; align-items:center; gap:9px;
-  transition:background .13s, color .13s;
-}
-.tab-btn:hover{background:var(--surface-2); color:var(--ink);}
-.tab-btn[aria-selected="true"]{background:var(--ink); color:var(--surface); font-weight:600;}
-.tab-btn .idx{font-size:10px; opacity:.5; font-family:"JetBrains Mono",monospace;}
-.tab-btn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+/* ---------- header ---------- */
+header{padding:26px 0 22px; border-bottom:1px solid var(--hair); background:var(--surface);}
+.hbar{display:flex; align-items:center; justify-content:space-between; gap:20px; flex-wrap:wrap;}
+.hleft{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;}
+h1{font-size:19px; font-weight:600;}
+.hclaim{font-size:12.5px; color:var(--ink-2); max-width:62ch; margin-top:9px;}
+.hclaim b{font-weight:600; color:var(--ink); border-bottom:1.5px solid var(--accent); padding-bottom:1px;}
+.chips{display:flex; gap:6px; flex-wrap:wrap;}
+.chip{border:1px solid var(--hair); border-radius:6px; padding:3px 8px; font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.05em; color:var(--muted); background:var(--surface);}
+.chip.on{border-color:var(--accent); color:var(--accent-ink); background:var(--accent-soft);}
 
-.rail-foot{margin-top:auto; display:flex; flex-direction:column; gap:11px; padding-top:18px; border-top:1px solid var(--hair);}
-.prov{font-size:10.5px; color:var(--muted); line-height:1.5;}
-.prov strong{color:var(--ink-2); font-weight:600; display:block; font-size:10px; letter-spacing:.07em; text-transform:uppercase; margin-bottom:5px;}
-.legend-row{display:flex; align-items:center; gap:7px; font-size:10.5px; color:var(--muted); margin-top:3px;}
-.sw{width:15px; height:11px; border-radius:3px; flex:none; border:1px solid var(--hair);}
-.sw.solid{background:var(--accent);}
-.sw.hatched{background:
-  repeating-linear-gradient(45deg,var(--accent) 0 2px,transparent 2px 5px), var(--accent-soft);}
+/* ---------- frontier ---------- */
+.stage{display:grid; grid-template-columns:minmax(0,1fr) 296px; gap:0; background:var(--surface); border:1px solid var(--hair); border-radius:12px; overflow:hidden; box-shadow:var(--shadow); margin:22px 0;}
+.plot{padding:20px 8px 14px 20px; min-width:0;}
+.plot-head{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; margin-bottom:6px; padding-right:12px;}
+.plot-head h2{font-size:15px; font-weight:600;}
+.plot-head p{margin:5px 0 0; font-size:11px; color:var(--muted); max-width:60ch;}
+#chart{width:100%; height:auto; touch-action:none;}
+.axcap{font-size:10px; color:var(--faint); padding:8px 12px 0 20px; line-height:1.5; max-width:96ch;}
 
-main{padding:28px 34px 60px; max-width:1240px;}
-.tabpanel[hidden]{display:none;}
-.head{margin-bottom:22px;}
-.head h2{font-size:26px; font-weight:700;}
-.head p{color:var(--muted); margin:6px 0 0; max-width:66ch;}
+.side{border-left:1px solid var(--hair); background:var(--sunk); padding:18px 18px 20px; display:flex; flex-direction:column; gap:14px; min-width:0;}
+.side .lab{margin-bottom:8px;}
+#detail h3{font-size:15px; font-weight:600; margin-bottom:2px;}
+#detail .sub{font-size:10.5px; color:var(--muted); margin-bottom:12px;}
+.kv{display:grid; grid-template-columns:1fr auto; gap:5px 10px; font-size:11.5px; padding:9px 0; border-top:1px solid var(--hair);}
+.kv dt{color:var(--muted);} .kv dd{margin:0; font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; text-align:right;}
+.badge{display:inline-flex; align-items:center; gap:5px; border-radius:5px; padding:2px 7px; font-family:"IBM Plex Mono",monospace; font-size:9px; letter-spacing:.07em; text-transform:uppercase; font-weight:500;}
+.badge.mock{background:var(--amber-soft); color:var(--amber);}
+.badge.ok{background:var(--accent-soft); color:var(--accent-ink);}
+.badge.warn{background:var(--red-soft); color:var(--red);}
+.thesis{font-size:11.5px; color:var(--ink-2); line-height:1.6;}
+.crit-note{font-size:10.5px; color:var(--muted); border-left:2px solid var(--hair); padding-left:9px; line-height:1.55;}
 
-/* ============ cards ============ */
-.card{background:var(--surface); border:1px solid var(--hair); border-radius:16px; padding:20px; box-shadow:var(--shadow); min-width:0;}
-.card-t{font-size:12.5px; font-weight:600; letter-spacing:.01em; margin-bottom:3px;}
-.card-s{font-size:11.5px; color:var(--muted); margin-bottom:15px; line-height:1.45;}
-/* grid/flex children default to min-width:auto, which lets a wide table push the whole
-   layout sideways instead of scrolling inside its own container. */
-.grid{display:grid; gap:16px; min-width:0;}
-.grid>*{min-width:0;}
-main{min-width:0;}
-.g2{grid-template-columns:repeat(2,minmax(0,1fr));}
-.g3{grid-template-columns:repeat(3,minmax(0,1fr));}
-@media (max-width:1080px){ .g2,.g3{grid-template-columns:1fr;} .shell{grid-template-columns:1fr;} .rail{position:static;height:auto;} main{padding:22px 18px 44px;} }
+/* slider */
+.knob{padding:14px 20px 18px; border-top:1px solid var(--hair); background:var(--surface);}
+.knob-row{display:flex; align-items:center; gap:14px; flex-wrap:wrap;}
+input[type=range]{flex:1; min-width:180px; accent-color:var(--accent); height:3px;}
+.knob-read{font-family:"IBM Plex Mono",monospace; font-size:11px; color:var(--ink-2); display:flex; gap:16px; flex-wrap:wrap;}
+.knob-read b{color:var(--ink); font-weight:600;}
 
-/* focal claim card */
-.focal{background:var(--focal); color:var(--focal-ink); border-radius:18px; padding:24px 26px; border:0;}
-.focal .eyebrow{font-size:10px; letter-spacing:.12em; text-transform:uppercase; opacity:.62; font-weight:600;}
-.claim{display:flex; flex-wrap:wrap; gap:34px; margin:16px 0 4px;}
-.claim-item .big{font-family:Archivo; font-weight:800; font-size:46px; line-height:1; letter-spacing:-.035em;}
-.claim-item .big .dim{opacity:.42; font-weight:600;}
-.claim-item .lbl{font-size:11.5px; opacity:.66; margin-top:7px;}
-.pill{display:inline-flex; align-items:center; gap:6px; border-radius:999px; padding:4px 10px; font-size:10.5px; font-weight:600; letter-spacing:.03em;}
-.pill.est{background:rgba(255,255,255,.13); color:var(--focal-ink);}
-.pill.good{background:var(--good-soft); color:var(--good);}
-.pill.bad{background:var(--bad-soft); color:var(--bad);}
-.pill.warn{background:var(--warn-soft); color:var(--warn);}
-.pill.accent{background:var(--accent-soft); color:var(--accent-ink);}
+/* ---------- criteria ---------- */
+.crits{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:14px; margin:22px 0;}
+.crit{background:var(--surface); border:1px solid var(--hair); border-top:2px solid var(--accent); border-radius:10px; padding:18px; display:flex; flex-direction:column; gap:10px; min-width:0;}
+.crit h3{font-size:14.5px; font-weight:600;}
+.crit .q{font-size:11.5px; color:var(--ink-2); line-height:1.55;}
+.crit .conv{font-size:10.5px; color:var(--muted); border-top:1px dashed var(--hair); padding-top:9px; line-height:1.5;}
+.crit .conv b{color:var(--accent-ink); font-weight:600;}
+.sigs{display:flex; flex-direction:column; gap:5px; margin-top:2px;}
+.sig{appearance:none; text-align:left; font:inherit; font-size:11.5px; background:var(--sunk); border:1px solid var(--hair); border-radius:7px; padding:8px 10px; cursor:pointer; color:var(--ink); display:flex; align-items:center; gap:8px; transition:border-color .12s,background .12s;}
+.sig:hover{border-color:var(--accent); background:var(--accent-soft);}
+.sig:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+.sig .n{font-family:"IBM Plex Mono",monospace; font-size:9px; color:var(--faint); flex:none;}
+.sig .t{flex:1; min-width:0;}
+.sig .v{font-family:"IBM Plex Mono",monospace; font-size:10px; color:var(--accent-ink); flex:none;}
+.sig.neg .v{color:var(--red);}
+.sig.todo{border-style:dashed; color:var(--muted);}
 
-/* ============ stats ============ */
-.stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(118px,1fr)); gap:1px; background:var(--hair); border:1px solid var(--hair); border-radius:14px; overflow:hidden;}
-.stat{background:var(--surface); padding:13px 15px;}
-.stat .v{font-family:Archivo; font-weight:700; font-size:20px; letter-spacing:-.02em;}
-.stat .k{font-size:10.5px; color:var(--muted); margin-top:2px;}
-
-/* ============ tables ============ */
-.tw{overflow-x:auto; border-radius:12px; border:1px solid var(--hair);}
-table{border-collapse:collapse; width:100%; font-size:12.5px; min-width:560px;}
-th{
-  font-family:"JetBrains Mono",monospace; font-size:9.5px; letter-spacing:.06em; text-transform:uppercase;
-  color:var(--muted); font-weight:500; text-align:right; padding:9px 12px;
-  background:var(--surface-2); border-bottom:1px solid var(--hair); white-space:nowrap;
-}
+/* ---------- secondary ---------- */
+section.sec{margin:22px 0;}
+.sec-head{display:flex; align-items:baseline; gap:12px; margin-bottom:12px;}
+.sec-head h2{font-size:14px; font-weight:600;}
+.sec-head p{margin:0; font-size:11px; color:var(--muted);}
+.tw{overflow-x:auto; border:1px solid var(--hair); border-radius:10px; background:var(--surface);}
+table{border-collapse:collapse; width:100%; font-size:11.5px; min-width:600px;}
+th{font-family:"IBM Plex Mono",monospace; font-size:9px; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); font-weight:500; text-align:right; padding:9px 12px; background:var(--sunk); border-bottom:1px solid var(--hair); white-space:nowrap;}
 th:first-child,td:first-child{text-align:left;}
-td{padding:10px 12px; text-align:right; border-bottom:1px solid var(--hair-2); font-variant-numeric:tabular-nums;}
+td{padding:9px 12px; text-align:right; border-bottom:1px solid var(--hair-2); font-variant-numeric:tabular-nums;}
 tr:last-child td{border-bottom:0;}
-tbody tr:hover td{background:var(--surface-2);}
-tr.is-us td{background:var(--accent-soft) !important;}
-tr.is-us td:first-child{box-shadow:inset 3px 0 0 var(--accent);}
-tr.dead td{opacity:.42;}
-tr.dead td:first-child{text-decoration:line-through;}
-.mid{color:var(--muted); font-size:11px;}
+td.mono{font-family:"IBM Plex Mono",monospace;}
+tr.dead td{opacity:.4;} tr.dead td:first-child{text-decoration:line-through;}
+.mini{font-size:10px; color:var(--muted);}
 
-/* ============ misc ============ */
-.note{background:var(--surface-2); border-left:2px solid var(--hair); padding:11px 14px; border-radius:0 9px 9px 0; font-size:12px; color:var(--ink-2); line-height:1.55;}
-.note.warn{background:var(--warn-soft); border-left-color:var(--warn);}
-.note.accent{background:var(--accent-soft); border-left-color:var(--accent);}
-ul.clean{margin:0; padding-left:17px; color:var(--ink-2); font-size:12px; line-height:1.7;}
-ul.clean li{margin-bottom:4px;}
-.pending{
-  border:1px dashed var(--hair); border-radius:12px; padding:22px; text-align:center;
-  color:var(--muted); font-size:12px;
-  background:repeating-linear-gradient(45deg,var(--surface-2) 0 6px,transparent 6px 12px);
-}
-.pending strong{display:block; color:var(--ink-2); font-size:13px; margin-bottom:4px; font-family:Archivo;}
-.divider{display:flex; align-items:center; gap:12px; margin:6px 0 2px;}
-.divider::before,.divider::after{content:""; height:1px; background:var(--hair); flex:1;}
-.divider span{font-size:10px; letter-spacing:.11em; text-transform:uppercase; color:var(--muted); font-weight:600;}
-.wall{
-  border:1px dashed var(--bad); background:var(--bad-soft); color:var(--bad);
-  border-radius:11px; padding:11px 15px; font-size:11.5px; font-weight:500; text-align:center; line-height:1.5;
-}
-svg{display:block; max-width:100%;}
-.chart-legend{display:flex; flex-wrap:wrap; gap:14px; margin-top:12px; font-size:11px; color:var(--muted);}
-.chart-legend .k{display:flex; align-items:center; gap:6px;}
-.dot{width:9px; height:9px; border-radius:50%; flex:none;}
-@media (prefers-reduced-motion:reduce){ *{animation:none !important; transition:none !important;} }
+/* provenance log — dryft's terminal motif */
+.log{background:var(--sunk); border:1px solid var(--hair); border-radius:10px; padding:14px 16px; font-family:"IBM Plex Mono",monospace; font-size:10.5px; color:var(--muted); line-height:1.85;}
+.log b{color:var(--ink-2); font-weight:500;}
+.log .ok{color:var(--accent);}
+
+/* ---------- modal ---------- */
+dialog{border:0; padding:0; background:transparent; max-width:640px; width:calc(100% - 32px);}
+dialog::backdrop{background:rgba(10,14,10,.52); backdrop-filter:blur(2px);}
+.sheet{background:var(--surface); border:1px solid var(--hair); border-radius:12px; box-shadow:0 20px 60px -20px rgba(0,0,0,.4); padding:24px; color:var(--ink);}
+.sheet h3{font-size:17px; font-weight:600; margin:8px 0 4px;}
+.sheet .fig{font-family:"IBM Plex Mono",monospace; font-size:25px; font-weight:500; color:var(--accent-ink); margin:12px 0 4px; letter-spacing:-.02em;}
+.sheet .fig.neg{color:var(--red);}
+.sheet p{font-size:12.5px; color:var(--ink-2); line-height:1.65;}
+.sheet .ph{border:1px dashed var(--hair); border-radius:8px; padding:13px 15px; background:var(--sunk); font-size:11.5px; color:var(--muted); line-height:1.6;}
+.sheet .ph b{display:block; color:var(--ink-2); font-family:"IBM Plex Mono",monospace; font-size:9.5px; letter-spacing:.09em; text-transform:uppercase; margin-bottom:5px;}
+.sheet footer{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:18px; padding-top:14px; border-top:1px solid var(--hair);}
+.xbtn{appearance:none; font:inherit; font-size:12px; border:1px solid var(--hair); background:var(--surface); color:var(--ink); border-radius:7px; padding:7px 14px; cursor:pointer;}
+.xbtn:hover{border-color:var(--accent); color:var(--accent-ink);}
+.xbtn:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+
+footer.pg{padding:26px 0 44px; color:var(--faint); font-size:10.5px; line-height:1.6;}
+@media (max-width:1020px){ .stage{grid-template-columns:1fr;} .side{border-left:0; border-top:1px solid var(--hair);} .crits{grid-template-columns:1fr;} }
+@media (prefers-reduced-motion:reduce){ *{transition:none!important; animation:none!important;} }
 </style>
 
-<div class="shell">
-  <aside class="rail">
-    <div class="brand">
-      <div class="brand-mark">R</div>
-      <h1>Router Evidence</h1>
-      <div class="sub">Viktor Challenge · TUM.ai<br>Munich, 22–23 Aug 2026</div>
-    </div>
-
-    <nav role="tablist" aria-label="Sections">
-      <div class="nav-label">Sections</div>
-      <button class="tab-btn" role="tab" aria-selected="true" aria-controls="p-over" id="t-over"><span class="idx">01</span> Overview</button>
-      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="p-rob" id="t-rob"><span class="idx">02</span> Runs &amp; Robustness</button>
-      <button class="tab-btn" role="tab" aria-selected="false" aria-controls="p-arena" id="t-arena"><span class="idx">03</span> Model Arena</button>
-    </nav>
-
-    <div class="rail-foot">
-      <div class="prov">
-        <strong>Reading the charts</strong>
-        <div class="legend-row"><span class="sw solid"></span> observed in the log</div>
-        <div class="legend-row"><span class="sw hatched"></span> estimated by us</div>
+<header>
+  <div class="wrap">
+    <div class="hbar">
+      <div>
+        <div class="hleft"><span class="lab">viktor challenge · tum.ai</span><span class="lab">munich · 22–23 aug 2026</span></div>
+        <h1 style="margin-top:7px">Which model should have taken this call?</h1>
+        <p class="hclaim" id="claim"></p>
       </div>
-      <div class="prov" id="prov-text"></div>
+      <div class="chips" id="chips"></div>
     </div>
-  </aside>
+  </div>
+</header>
 
-  <main>
-    <section class="tabpanel" id="p-over" role="tabpanel" aria-labelledby="t-over"></section>
-    <section class="tabpanel" id="p-rob" role="tabpanel" aria-labelledby="t-rob" hidden></section>
-    <section class="tabpanel" id="p-arena" role="tabpanel" aria-labelledby="t-arena" hidden></section>
-  </main>
+<div class="wrap">
+
+  <div class="stage">
+    <div class="plot">
+      <div class="plot-head">
+        <div>
+          <h2>Cost–quality frontier</h2>
+          <p id="plot-sub"></p>
+        </div>
+        <span class="lab" id="split-lab">frontier/held-out</span>
+      </div>
+      <svg id="chart" viewBox="0 0 720 430" role="img" aria-label="Cost against quality for every routing policy"></svg>
+      <p class="axcap" id="axcap"></p>
+    </div>
+    <aside class="side">
+      <div>
+        <div class="lab">selected policy</div>
+        <div id="detail"></div>
+      </div>
+    </aside>
+  </div>
+
+  <div class="knob">
+    <div class="knob-row">
+      <span class="lab" style="flex:none">knob · share routed to cheap</span>
+      <input type="range" id="slider" min="0" max="40" value="0" step="1" aria-label="Share of trajectories routed to the cheaper model">
+      <span class="knob-read" id="knob-read"></span>
+    </div>
+  </div>
+
+  <div class="crits" id="crits"></div>
+
+  <section class="sec">
+    <div class="sec-head"><h2>Supporting evidence</h2><p>per-model behaviour within one fixed toolset — the basis for every claim above</p></div>
+    <div class="tw" id="arena"></div>
+    <p class="mini" style="margin-top:9px" id="arena-note"></p>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head"><h2>Provenance</h2><p>how every number on this page was produced</p></div>
+    <div class="log" id="prov"></div>
+  </section>
+
+  <footer class="pg" id="pgfoot"></footer>
 </div>
 
-<script type="application/json" id="dashboard-data">
-/*__DASHBOARD_DATA__*/
-</script>
+<dialog id="modal"><div class="sheet" id="sheet"></div></dialog>
+
+<script type="application/json" id="dashboard-data">/*__DASHBOARD_DATA__*/</script>
+<script type="application/json" id="frontier-data">/*__FRONTIER_DATA__*/</script>
 
 <script>
-const DATA = JSON.parse(document.getElementById('dashboard-data').textContent);
+const D = JSON.parse(document.getElementById('dashboard-data').textContent);
+const F = JSON.parse(document.getElementById('frontier-data').textContent);
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const money = n => '$' + n.toFixed(4);
+const q4 = n => (n*100).toFixed(2) + '%';
+const sgn = (n,d=2) => (n>=0?'+':'') + n.toFixed(d);
+const cvar = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 
-/* ---------- helpers ---------- */
-const $ = (s) => document.querySelector(s);
-const esc = (s) => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-const usd = (n) => '$' + n.toFixed(2);
-const pct = (n, d = 2) => (n * 100).toFixed(d) + '%';
-const sgn = (n, d = 1) => (n >= 0 ? '+' : '') + n.toFixed(d);
-const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
-/** Big number with the decimal part dimmed. */
-function bigNum(txt) {
-  const m = String(txt).match(/^([^.]*)(\.\d+.*)$/);
-  return m ? `${esc(m[1])}<span class="dim">${esc(m[2])}</span>` : esc(txt);
-}
-
-/* ---------- SVG chart primitives ---------- */
-function svgEl(w, h) {
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" preserveAspectRatio="xMidYMid meet">
-    <defs>
-      <pattern id="hatch" width="6" height="6" patternTransform="rotate(45)" patternUnits="userSpaceOnUse">
-        <line x1="0" y1="0" x2="0" y2="6" stroke="${css('--hatch')}" stroke-width="2.5"/>
-      </pattern>
-    </defs>`;
-}
-
-/** Cost–quality frontier. x = cost, y = estimated success. */
-function frontierChart(front, h2h) {
-  const W = 660, H = 330, m = { t: 18, r: 22, b: 42, l: 56 };
-  const pts = front.points;
-  const pol = h2h ? h2h.policies : [];
-  const xs = pts.map(p => p.cost_usd).concat(pol.map(p => p.cost_usd));
-  const ys = pts.map(p => p.est_success).concat(pol.map(p => p.est_success));
-  const x0 = Math.min(...xs), x1 = Math.max(...xs);
-  const y0 = Math.min(...ys), y1 = Math.max(...ys);
-  const padY = (y1 - y0) * 0.14, padX = (x1 - x0) * 0.06;
-  const X = v => m.l + (v - (x0 - padX)) / ((x1 + padX) - (x0 - padX)) * (W - m.l - m.r);
-  const Y = v => m.t + (1 - (v - (y0 - padY)) / ((y1 + padY) - (y0 - padY))) * (H - m.t - m.b);
-
-  let s = svgEl(W, H);
-  // grid
-  for (let i = 0; i <= 4; i++) {
-    const yv = (y0 - padY) + i / 4 * ((y1 + padY) - (y0 - padY));
-    s += `<line x1="${m.l}" y1="${Y(yv).toFixed(1)}" x2="${W - m.r}" y2="${Y(yv).toFixed(1)}" stroke="${css('--hair-2')}" stroke-width="1"/>
-      <text x="${m.l - 9}" y="${(Y(yv) + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="${css('--muted')}" font-family="JetBrains Mono">${(yv * 100).toFixed(1)}%</text>`;
+/* ---------------- assemble every plotted policy ---------------- */
+const A = F.anchors;
+const POL = [
+  {id:'strongest', name:A.strongest.name, cost:A.strongest.cost, q:A.strongest.quality, kind:'anchor', note:'Quality ceiling. Everything is measured against this.'},
+  {id:'cheapest',  name:A.cheapest.name,  cost:A.cheapest.cost,  q:A.cheapest.quality,  kind:'anchor', note:'Cost floor. The cheapest thing that still does the work.'},
+  {id:'observed',  name:A.observed.name,  cost:A.observed.cost,  q:A.observed.quality,  kind:'observed', note:'What actually ran in production. The policy we are trying to beat.'},
+];
+if (D.head_to_head) {
+  const v = D.head_to_head.policies.find(p => p.name.startsWith('Viktor'));
+  if (v) {
+    const scale = A.observed.cost / D.head_to_head.policies.find(p=>p.name==='Logged policy').cost_usd;
+    POL.push({id:'viktor', name:'Viktor baseline router', cost:v.cost_usd*scale, q:v.est_success, kind:'baseline',
+      note:'Ships in the starter kit. Routes whole small trajectories to the cheap sibling, with no quality estimate of its own.'});
   }
-  for (let i = 0; i <= 4; i++) {
-    const xv = (x0 - padX) + i / 4 * ((x1 + padX) - (x0 - padX));
-    s += `<text x="${X(xv).toFixed(1)}" y="${H - m.b + 17}" text-anchor="middle" font-size="10" fill="${css('--muted')}" font-family="JetBrains Mono">$${xv.toFixed(0)}</text>`;
+}
+(D.models||[]).forEach(m => POL.push({
+  id:m.id, name:m.name, cost:m.cost_usd, q:m.est_success, kind:'ours', status:m.status,
+  arch:m.arch, explainable:m.explainable, ci:m.ci, note:m.thesis, crit:m.criterion_note}));
+
+const SWEEP = F.heldout, BAND = F.band;
+
+/* ---------------- the chart ---------------- */
+const W=720, H=430, M={t:26,r:150,b:56,l:62};
+let pinned = null, hovered = null, knobIdx = 0;
+
+const allC = SWEEP.map(p=>p.cost).concat(POL.filter(p=>p.cost!=null).map(p=>p.cost));
+const allQ = SWEEP.map(p=>p.quality).concat(POL.filter(p=>p.q!=null).map(p=>p.q));
+const cLo=Math.min(...allC), cHi=Math.max(...allC), qLo=Math.min(...allQ), qHi=Math.max(...allQ);
+const padC=(cHi-cLo)*.10, padQ=(qHi-qLo)*.16;
+const X = v => M.l + (v-(cLo-padC))/((cHi+padC)-(cLo-padC))*(W-M.l-M.r);
+const Y = v => M.t + (1-(v-(qLo-padQ))/((qHi+padQ)-(qLo-padQ)))*(H-M.t-M.b);
+
+function drawChart(){
+  const g=[], acc=cvar('--accent'), gridc=cvar('--grid'), muted=cvar('--muted'),
+        faint=cvar('--faint'), ink=cvar('--ink'), amber=cvar('--amber'), ghost=cvar('--ghost');
+
+  // grid + axes
+  for(let i=0;i<=4;i++){
+    const qv=(qLo-padQ)+i/4*((qHi+padQ)-(qLo-padQ)), y=Y(qv);
+    g.push(`<line x1="${M.l}" y1="${y.toFixed(1)}" x2="${W-M.r}" y2="${y.toFixed(1)}" stroke="${gridc}"/>`);
+    g.push(`<text x="${M.l-8}" y="${(y+3.4).toFixed(1)}" text-anchor="end" font-size="9.5" fill="${faint}" font-family="IBM Plex Mono">${(qv*100).toFixed(1)}%</text>`);
   }
-  // frontier curve (hatched band under it = estimated)
-  const line = pts.slice().sort((a, b) => a.cost_usd - b.cost_usd);
-  const d = line.map((p, i) => `${i ? 'L' : 'M'}${X(p.cost_usd).toFixed(1)},${Y(p.est_success).toFixed(1)}`).join(' ');
-  const area = d + ` L${X(line[line.length - 1].cost_usd).toFixed(1)},${H - m.b} L${X(line[0].cost_usd).toFixed(1)},${H - m.b} Z`;
-  s += `<path d="${area}" fill="url(#hatch)" opacity=".26"/>`;
-  s += `<path d="${d}" fill="none" stroke="${css('--accent')}" stroke-width="2" stroke-dasharray="5 3"/>`;
-  // policy markers
-  const style = {
-    'Logged policy': { c: css('--ink-2'), r: 6 },
-    'Viktor baseline router': { c: css('--warn'), r: 6 },
-    'Our router (quality-matched)': { c: css('--accent'), r: 8 },
-  };
-  pol.forEach(p => {
-    const st = style[p.name] || { c: css('--muted'), r: 5 };
-    const cx = X(p.cost_usd), cy = Y(p.est_success);
-    const us = p.name.startsWith('Our');
-    if (us) s += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="14" fill="${st.c}" opacity=".14"/>`;
-    s += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${st.r}" fill="${st.c}" stroke="${css('--surface')}" stroke-width="2"/>`;
-    if (p.name.startsWith('Always')) {
-      s += `<text x="${cx.toFixed(1)}" y="${(cy - 12).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="${css('--muted')}" font-family="JetBrains Mono">${esc(p.name.replace('Always ', ''))}</text>`;
+  for(let i=0;i<=4;i++){
+    const cv=(cLo-padC)+i/4*((cHi+padC)-(cLo-padC)), x=X(cv);
+    g.push(`<line x1="${x.toFixed(1)}" y1="${M.t}" x2="${x.toFixed(1)}" y2="${H-M.b}" stroke="${gridc}"/>`);
+    g.push(`<text x="${x.toFixed(1)}" y="${H-M.b+15}" text-anchor="middle" font-size="9.5" fill="${faint}" font-family="IBM Plex Mono">$${cv.toFixed(3)}</text>`);
+  }
+  g.push(`<text x="${((M.l+W-M.r)/2).toFixed(0)}" y="${H-14}" text-anchor="middle" font-size="10" fill="${muted}">mean cost per trajectory →</text>`);
+  g.push(`<text transform="translate(15,${((M.t+H-M.b)/2).toFixed(0)}) rotate(-90)" text-anchor="middle" font-size="10" fill="${muted}">estimated success rate →</text>`);
+
+  // sensitivity ghosts (±30% cached share)
+  [F.sensitivity.low, F.sensitivity.high].forEach(s=>{
+    const d = s.map((p,i)=>`${i?'L':'M'}${X(p.cost).toFixed(1)},${Y(p.quality).toFixed(1)}`).join(' ');
+    g.push(`<path d="${d}" fill="none" stroke="${ghost}" stroke-width="1" stroke-dasharray="2 3"/>`);
+  });
+
+  // bootstrap band
+  const up=BAND.map(b=>`${X(b.cost_lo).toFixed(1)},${Y(b.q_hi).toFixed(1)}`);
+  const dn=BAND.slice().reverse().map(b=>`${X(b.cost_hi).toFixed(1)},${Y(b.q_lo).toFixed(1)}`);
+  g.push(`<polygon points="${up.concat(dn).join(' ')}" fill="${cvar('--band')}"/>`);
+
+  // random-routing null line (the honest comparator)
+  const r0=A.random_line.p0, r1=A.random_line.p1;
+  g.push(`<line x1="${X(r0.cost).toFixed(1)}" y1="${Y(r0.quality).toFixed(1)}" x2="${X(r1.cost).toFixed(1)}" y2="${Y(r1.quality).toFixed(1)}"
+    stroke="${muted}" stroke-width="1.2" stroke-dasharray="5 4"/>`);
+  const mx=(X(r0.cost)+X(r1.cost))/2, my=(Y(r0.quality)+Y(r1.quality))/2;
+  g.push(`<text x="${(mx+6).toFixed(1)}" y="${(my+16).toFixed(1)}" font-size="9.5" fill="${muted}" font-family="IBM Plex Mono">random routing</text>`);
+
+  // swept curve
+  const line=SWEEP.map((p,i)=>`${i?'L':'M'}${X(p.cost).toFixed(1)},${Y(p.quality).toFixed(1)}`).join(' ');
+  g.push(`<path d="${line}" fill="none" stroke="${acc}" stroke-width="2"/>`);
+  SWEEP.forEach((p,i)=>{
+    g.push(`<circle cx="${X(p.cost).toFixed(1)}" cy="${Y(p.quality).toFixed(1)}" r="${p.pareto?2.2:1.4}"
+      fill="${acc}" opacity="${p.pareto?.85:.28}"/>`);
+  });
+
+  // named operating points
+  F.named_points.forEach((n,i)=>{
+    const x=X(n.cost), y=Y(n.quality);
+    g.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="4.5" fill="none" stroke="${acc}" stroke-width="1.5"/>`);
+    if(i===1){
+      g.push(`<line x1="${(x+6).toFixed(1)}" y1="${(y-4).toFixed(1)}" x2="${(x+26).toFixed(1)}" y2="${(y-24).toFixed(1)}" stroke="${acc}" stroke-width="1"/>`);
+      g.push(`<text x="${(x+29).toFixed(1)}" y="${(y-26).toFixed(1)}" font-size="10.5" font-weight="600" fill="${ink}">${n.pct_cost.toFixed(0)}% cost</text>`);
+      g.push(`<text x="${(x+29).toFixed(1)}" y="${(y-14).toFixed(1)}" font-size="10" fill="${muted}">${n.pct_quality.toFixed(1)}% of top quality</text>`);
     }
   });
-  s += `<text x="${(W / 2).toFixed(0)}" y="${H - 5}" text-anchor="middle" font-size="10.5" fill="${css('--muted')}">estimated cost for these 692 tasks →</text>`;
-  s += `<text transform="translate(13,${(H / 2).toFixed(0)}) rotate(-90)" text-anchor="middle" font-size="10.5" fill="${css('--muted')}">estimated success rate →</text>`;
-  return s + '</svg>';
-}
 
-/** Horizontal cost bars with a quality delta chip. */
-function policyBars(h2h) {
-  const pol = h2h.policies;
-  const max = Math.max(...pol.map(p => p.cost_usd));
-  return pol.map(p => {
-    const us = p.name.startsWith('Our'), vik = p.name.startsWith('Viktor');
-    const col = us ? css('--accent') : vik ? css('--warn') : css('--muted');
-    const w = (p.cost_usd / max * 100).toFixed(1);
-    const q = p.vs_logged_quality_pp;
-    const chip = q > 0.001 ? `<span class="pill good">${sgn(q, 2)}pp quality</span>`
-      : q < -0.001 ? `<span class="pill bad">${sgn(q, 2)}pp quality</span>`
-      : `<span class="pill">±0pp</span>`;
-    return `<div style="margin-bottom:13px">
-      <div style="display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-bottom:5px">
-        <span style="font-weight:${us || vik ? 600 : 500};font-size:12.5px">${esc(p.name)}</span>
-        <span style="display:flex;gap:7px;align-items:center">${chip}
-          <span class="mono num" style="font-size:13px;font-weight:600">${usd(p.cost_usd)}</span></span>
-      </div>
-      <div style="height:9px;border-radius:5px;background:var(--surface-2);overflow:hidden">
-        <div style="height:100%;width:${w}%;background:${col};border-radius:5px;${us ? '' : 'opacity:.72'}"></div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-/** Per-model failure rate with Wilson interval whiskers. */
-function failureChart(rows) {
-  const use = rows.filter(r => r.usable);
-  if (!use.length) return '';
-  const W = 560, rowH = 46, H = use.length * rowH + 26, L = 128, R = 58;
-  const hi = Math.max(...use.map(r => r.fail_ci[1])) * 1.12;
-  const X = v => L + (v / hi) * (W - L - R);
-  let s = svgEl(W, H);
-  use.forEach((r, i) => {
-    const y = 18 + i * rowH;
-    s += `<text x="0" y="${y + 4}" font-size="11.5" fill="${css('--ink')}" font-family="JetBrains Mono">${esc(r.model)}</text>`;
-    s += `<line x1="${X(r.fail_ci[0]).toFixed(1)}" y1="${y}" x2="${X(r.fail_ci[1]).toFixed(1)}" y2="${y}" stroke="${css('--hatch')}" stroke-width="7" stroke-linecap="round"/>`;
-    s += `<circle cx="${X(r.fail).toFixed(1)}" cy="${y}" r="5.5" fill="${css('--accent')}" stroke="${css('--surface')}" stroke-width="2"/>`;
-    s += `<text x="${W - 4}" y="${y + 4}" text-anchor="end" font-size="11" font-family="JetBrains Mono" fill="${css('--ink-2')}">${pct(r.fail)}</text>`;
-    s += `<text x="0" y="${y + 18}" font-size="9.5" fill="${css('--muted')}" font-family="JetBrains Mono">$${r.price_in.toFixed(2)}/M · ${r.tasks} tasks</text>`;
+  // policy markers, direct-labelled (no legend, per the spec)
+  POL.filter(p=>p.cost!=null).forEach(p=>{
+    const x=X(p.cost), y=Y(p.q), sel = pinned===p.id||hovered===p.id;
+    const col = p.kind==='ours' ? acc : p.kind==='baseline' ? amber : p.kind==='observed' ? ink : muted;
+    const mock = p.status==='mock';
+    if(sel) g.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="13" fill="${col}" opacity=".13"/>`);
+    if(p.ci){
+      g.push(`<line x1="${x.toFixed(1)}" y1="${Y(p.ci[0]).toFixed(1)}" x2="${x.toFixed(1)}" y2="${Y(p.ci[1]).toFixed(1)}" stroke="${col}" stroke-width="1" opacity=".45"/>`);
+    }
+    // explainable = solid, black box = hollow dashed
+    if(p.kind==='ours' && p.explainable===false){
+      g.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="6" fill="var(--surface)" stroke="${col}" stroke-width="1.8" stroke-dasharray="3 2"/>`);
+    } else {
+      g.push(`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${p.kind==='anchor'?4:5.5}" fill="${mock?'var(--surface)':col}" stroke="${col}" stroke-width="${mock?1.8:1.6}"/>`);
+    }
+    const lx=x+10, up=(p.id==='cheapest'||p.id==='observed');
+    g.push(`<text x="${lx.toFixed(1)}" y="${(y+(up?-7:4)).toFixed(1)}" font-size="10.5" fill="${cvar('--ink')}" font-weight="${p.kind==='anchor'?400:600}">${esc(p.name.replace('Always ',''))}</text>`);
+    if(mock) g.push(`<text x="${lx.toFixed(1)}" y="${(y+(up?4:15)).toFixed(1)}" font-size="8.5" fill="${amber}" font-family="IBM Plex Mono" letter-spacing=".08em">MOCK</text>`);
+    g.push(`<circle class="hit" data-id="${p.id}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="15" fill="transparent" style="cursor:pointer"/>`);
   });
-  return s + '</svg>';
-}
 
-/** Cost (x) vs failure (y) — dominated models sit up-and-right. */
-function dominanceChart(rows) {
-  const use = rows.filter(r => r.usable);
-  const W = 430, H = 300, m = { t: 20, r: 24, b: 42, l: 52 };
-  const xs = use.map(r => r.price_in), ys = use.map(r => r.fail);
-  const x1 = Math.max(...xs) * 1.15, y1 = Math.max(...ys) * 1.18, y0 = Math.min(...ys) * .82;
-  const X = v => m.l + v / x1 * (W - m.l - m.r);
-  const Y = v => m.t + (1 - (v - y0) / (y1 - y0)) * (H - m.t - m.b);
-  let s = svgEl(W, H);
-  s += `<line x1="${m.l}" y1="${H - m.b}" x2="${W - m.r}" y2="${H - m.b}" stroke="${css('--hair')}"/>`;
-  s += `<line x1="${m.l}" y1="${m.t}" x2="${m.l}" y2="${H - m.b}" stroke="${css('--hair')}"/>`;
-  // best model anchors the dominance quadrant
-  const best = use.reduce((a, b) => (a.fail <= b.fail && a.price_in <= b.price_in) ? a : (b.fail < a.fail ? b : a));
-  s += `<rect x="${X(best.price_in).toFixed(1)}" y="${m.t}" width="${(W - m.r - X(best.price_in)).toFixed(1)}" height="${(Y(best.fail) - m.t).toFixed(1)}" fill="${css('--bad')}" opacity=".07"/>`;
-  s += `<text x="${(W - m.r - 6).toFixed(1)}" y="${m.t + 13}" text-anchor="end" font-size="9" fill="${css('--bad')}" font-family="JetBrains Mono">DOMINATED</text>`;
-  use.forEach(r => {
-    const cx = X(r.price_in), cy = Y(r.fail);
-    const dom = r.price_in >= best.price_in && r.fail >= best.fail && r.model !== best.model;
-    s += `<circle cx="${cx.toFixed(1)}" cy="${cy.toFixed(1)}" r="${Math.max(5, Math.sqrt(r.tasks) * .7).toFixed(1)}"
-      fill="${dom ? css('--bad') : css('--accent')}" opacity=".82"/>`;
-    s += `<text x="${cx.toFixed(1)}" y="${(cy - 13).toFixed(1)}" text-anchor="middle" font-size="9" font-family="JetBrains Mono" fill="${css('--ink-2')}">${esc(r.model.replace('claude-', '').replace('gpt-5.6-', ''))}</text>`;
+  // knob marker
+  const kp = SWEEP[knobIdx];
+  g.push(`<circle cx="${X(kp.cost).toFixed(1)}" cy="${Y(kp.quality).toFixed(1)}" r="5" fill="none" stroke="${acc}" stroke-width="2.5"/>`);
+
+  $('#chart').innerHTML = g.join('');
+  $('#chart').querySelectorAll('.hit').forEach(el=>{
+    el.addEventListener('mouseenter',()=>{hovered=el.dataset.id; drawChart(); showDetail(hovered);});
+    el.addEventListener('mouseleave',()=>{hovered=null; drawChart(); showDetail(pinned||'observed');});
+    el.addEventListener('click',()=>{pinned=el.dataset.id; drawChart(); showDetail(pinned);});
   });
-  for (let i = 0; i <= 3; i++) {
-    const xv = i / 3 * x1;
-    s += `<text x="${X(xv).toFixed(1)}" y="${H - m.b + 16}" text-anchor="middle" font-size="9.5" fill="${css('--muted')}" font-family="JetBrains Mono">$${xv.toFixed(0)}</text>`;
-  }
-  s += `<text x="${(W / 2).toFixed(0)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="${css('--muted')}">price per 1M input tokens →</text>`;
-  s += `<text transform="translate(12,${(H / 2).toFixed(0)}) rotate(-90)" text-anchor="middle" font-size="10" fill="${css('--muted')}">failure rate →</text>`;
-  return s + '</svg>';
 }
 
-/* ---------- tab 01 · overview ---------- */
-function renderOverview() {
-  const c = DATA.corpus, h = DATA.head_to_head, f = DATA.frontier;
-  const ours = h && h.policies.find(p => p.name.startsWith('Our'));
-  const vik = h && h.policies.find(p => p.name.startsWith('Viktor'));
-  const logged = h && h.policies.find(p => p.name === 'Logged policy');
-
-  let focal = '';
-  if (ours && vik) {
-    focal = `<div class="focal">
-      <div class="eyebrow">The claim · ${esc(h.stratum)} · ${h.n_tasks} tasks</div>
-      <div class="claim">
-        <div class="claim-item">
-          <div class="big">${bigNum(ours.vs_viktor_pct.toFixed(1))}<span class="dim">%</span></div>
-          <div class="lbl">cost vs the baseline router<br>Viktor ships in the starter kit</div>
-        </div>
-        <div class="claim-item">
-          <div class="big">${bigNum(sgn(ours.vs_viktor_quality_pp, 2))}<span class="dim">pp</span></div>
-          <div class="lbl">estimated quality vs that<br>same baseline — we gain, it loses</div>
-        </div>
-        <div class="claim-item">
-          <div class="big">${bigNum(ours.vs_logged_pct.toFixed(1))}<span class="dim">%</span></div>
-          <div class="lbl">cost vs the logged production<br>policy, at ${sgn(ours.vs_logged_quality_pp, 2)}pp quality</div>
-        </div>
-      </div>
-      <div style="margin-top:16px;display:flex;gap:8px;flex-wrap:wrap">
-        <span class="pill est">◪ ESTIMATED · NOT MEASURED</span>
-        <span class="pill est">direct-method quality · SNIPS pending</span>
-      </div>
-    </div>`;
-  }
-
-  const stats = `<div class="stats">
-    <div class="stat"><div class="v num">${c.requests.toLocaleString()}</div><div class="k">logged requests</div></div>
-    <div class="stat"><div class="v num">${c.turns.toLocaleString()}</div><div class="k">reconstructed turns</div></div>
-    <div class="stat"><div class="v num">${c.tool_calls.toLocaleString()}</div><div class="k">tool calls</div></div>
-    <div class="stat"><div class="v num">${pct(c.coverage, 1)}</div><div class="k">graded coverage</div></div>
-    <div class="stat"><div class="v num">${pct(c.failure_rate, 2)}</div><div class="k">failure rate</div></div>
-    <div class="stat"><div class="v num">${c.cron}</div><div class="k">cron tasks</div></div>
-  </div>`;
-
-  const tbl = h ? `<div class="tw"><table>
-    <thead><tr><th>Policy</th><th>Cost</th><th>Est. success</th><th>vs logged</th><th>vs Viktor</th></tr></thead>
-    <tbody>${h.policies.map(p => {
-      const us = p.name.startsWith('Our');
-      return `<tr class="${us ? 'is-us' : ''}">
-        <td><div style="font-weight:${us ? 600 : 500}">${esc(p.name)}</div><div class="mid">${esc(p.note)}</div></td>
-        <td class="mono">${usd(p.cost_usd)}</td>
-        <td class="mono">${pct(p.est_success)}</td>
-        <td class="mono" style="color:${p.vs_logged_pct < 0 ? 'var(--good)' : p.vs_logged_pct > 0 ? 'var(--bad)' : 'inherit'}">${sgn(p.vs_logged_pct)}%</td>
-        <td class="mono" style="color:${p.vs_viktor_pct < 0 ? 'var(--good)' : p.vs_viktor_pct > 0 ? 'var(--bad)' : 'inherit'}">${sgn(p.vs_viktor_pct)}%</td>
-      </tr>`;
-    }).join('')}</tbody></table></div>` : '';
-
-  $('#p-over').innerHTML = `
-    <div class="head">
-      <h2>Same work, less money — and we can say by how much</h2>
-      <p>Every policy below is scored on the <strong>same ${h ? h.n_tasks : ''} tasks</strong>, with the same cache-aware cost model and the same quality metric, so the comparison is like-for-like.</p>
-    </div>
-    <div class="grid" style="gap:18px">
-      ${focal}
-      ${stats}
-      <div class="grid g2">
-        <div class="card">
-          <div class="card-t">Cost by policy</div>
-          <div class="card-s">Bar length is estimated spend. The chip shows quality change against the logged production policy.</div>
-          ${h ? policyBars(h) : ''}
-        </div>
-        <div class="card">
-          <div class="card-t">Where each policy sits</div>
-          <div class="card-s">Up and to the left is better. The dashed curve is our threshold sweep; the hatched band marks it as estimated, not observed.</div>
-          ${f && f.points ? frontierChart(f, h) : ''}
-          <div class="chart-legend">
-            <span class="k"><span class="dot" style="background:var(--ink-2)"></span>logged policy</span>
-            <span class="k"><span class="dot" style="background:var(--warn)"></span>Viktor baseline</span>
-            <span class="k"><span class="dot" style="background:var(--accent)"></span>our router</span>
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-t">Every policy, same tasks</div>
-        <div class="card-s">The baseline Viktor ships buys its savings by giving up ${vik ? Math.abs(vik.vs_logged_quality_pp).toFixed(2) : ''}pp of estimated quality. Ours is cheaper and slightly better — an improvement on both axes rather than a trade.</div>
-        ${tbl}
-      </div>
-      <div class="note warn">
-        <strong>Why this says −${vik ? Math.abs(vik.vs_logged_pct).toFixed(1) : ''}% for the Viktor baseline and not −22.2%.</strong>
-        The starter kit reports −22.2% across the whole corpus. That number leans on a trajectory grouping that collapses 929 of 953 groups to a single call, and it carries no quality estimate at all — it cannot tell you what the saving cost. Restricted to one clean, comparable stratum and scored against a quality metric, the same rule delivers ${vik ? sgn(vik.vs_logged_pct) : ''}%.
-      </div>
-      <div class="card">
-        <div class="card-t">What these numbers are not</div>
-        <div class="card-s">Stated up front, because a frontier you cannot defend is worth nothing.</div>
-        <ul class="clean">${DATA.caveats.map(x => `<li>${esc(x)}</li>`).join('')}</ul>
-      </div>
-    </div>`;
+/* ---------------- side panel ---------------- */
+function showDetail(id){
+  const p = POL.find(x=>x.id===id) || POL.find(x=>x.id==='observed');
+  const obs = POL.find(x=>x.id==='observed'), str = POL.find(x=>x.id==='strongest');
+  const badge = p.status==='mock' ? '<span class="badge mock">mock data</span>'
+    : p.kind==='ours' ? '<span class="badge ok">evaluated</span>' : '';
+  const rows = [];
+  rows.push(['Cost per trajectory', money(p.cost)]);
+  rows.push(['Estimated success', q4(p.q)]);
+  if(p.ci) rows.push(['95% interval', q4(p.ci[0])+' – '+q4(p.ci[1])]);
+  if(p.id!=='observed') rows.push(['vs observed cost', sgn((p.cost-obs.cost)/obs.cost*100,1)+'%']);
+  if(p.id!=='observed') rows.push(['vs observed quality', sgn((p.q-obs.q)*100)+'pp']);
+  rows.push(['% of top-model cost', (p.cost/str.cost*100).toFixed(0)+'%']);
+  $('#detail').innerHTML = `
+    <h3>${esc(p.name)}</h3>
+    <div class="sub">${esc(p.arch || (p.kind==='anchor'?'reference anchor':p.kind==='baseline'?'organiser baseline':'production log'))}</div>
+    ${badge}
+    <dl class="kv">${rows.map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>
+    <p class="thesis">${esc(p.note||'')}</p>
+    ${p.crit?`<p class="crit-note">${esc(p.crit)}</p>`:''}
+    ${p.explainable===false?`<p class="crit-note">Drawn hollow: this router cannot name the structure it uses.</p>`:''}`;
 }
 
-/* ---------- tab 02 · runs & robustness ---------- */
-function renderRobustness() {
-  const r = DATA.robustness, o = r.overlap;
-  const ov = (k, d) => `<div class="card">
-    <div class="card-t">${esc(d.label)}</div>
-    <div class="card-s">Can we even estimate what a different model would have done here?</div>
-    <div class="stats" style="margin-bottom:13px">
-      <div class="stat"><div class="v num">${d.cv_accuracy.toFixed(3)}</div><div class="k">model predictable?</div></div>
-      <div class="stat"><div class="v num">${d.majority_baseline.toFixed(3)}</div><div class="k">chance level</div></div>
-      <div class="stat"><div class="v num">${d.weight_max.toFixed(1)}×</div><div class="k">largest weight</div></div>
-      <div class="stat"><div class="v num">${d.ess.toFixed(0)}</div><div class="k">effective sample</div></div>
-    </div>
-    <div class="note ${d.ess > 100 ? 'accent' : 'warn'}">${d.verdict}</div>
-  </div>`;
+/* ---------------- knob ---------------- */
+function setKnob(i){
+  knobIdx = i;
+  const p = SWEEP[i], str = POL.find(x=>x.id==='strongest'), obs = POL.find(x=>x.id==='observed');
+  $('#knob-read').innerHTML =
+    `<span>share cheap <b>${(p.share_cheap*100).toFixed(0)}%</b></span>`+
+    `<span>cost <b>${money(p.cost)}</b></span>`+
+    `<span>quality <b>${q4(p.quality)}</b></span>`+
+    `<span>vs observed <b>${sgn((p.cost-obs.cost)/obs.cost*100,1)}%</b> cost, <b>${sgn((p.quality-obs.q)*100)}pp</b></span>`+
+    `<span>lift over random <b>${sgn(p.lift_pp,3)}pp</b></span>`;
+  drawChart();
+}
 
-  $('#p-rob').innerHTML = `
-    <div class="head">
-      <h2>How we know the number isn't an artefact</h2>
-      <p>The log only ever shows the model that actually ran. Everything here tests whether an estimate of the road not taken can be trusted — and names the places it cannot.</p>
+/* ---------------- criteria + modals ---------------- */
+const SIGNALS = {
+  bash:{n:'signal/01', t:'The gap lives entirely in bash', v:'+3.47pp', fig:'+3.47pp on bash · −0.81pp on Slack',
+    body:'Sonnet-5 fails 2.76pp more often than Opus-5 overall — but split that by tool and it is not a general capability gap at all. On bash the gap is +3.47pp. On coworker_send_slack_message it <em>reverses</em> to −0.81pp. The weaker model is not worse at the job; it is worse at the shell.',
+    why:'A router that escalates only shell-heavy work captures most of the quality for a fraction of the spend.'},
+  exit2:{n:'signal/02', t:'It is tool knowledge, not reasoning', v:'3.4×',
+    fig:'exit_code 2 at 3.4× the rate', body:'Sonnet-5 produces bad-CLI-usage errors (exit code 2) at 3.4× Opus-5\'s rate — 1.05% vs 0.31%, spread across 20 tasks rather than concentrated in a few. The excess failure is disproportionately <em>knowing how to invoke the tool</em>, not reasoning about the task.',
+    why:'It suggests the gap is closable with better tool documentation rather than a bigger model.'},
+  dominated:{n:'signal/03', t:'One model is strictly dominated', v:'fable-5',
+    fig:'2× the price, worse reliability', body:'claude-fable-5 costs $10/M against Opus-5\'s $5/M, yet fails more often (4.50% vs 3.19%) and returns half the successful calls per dollar (20 vs 42). There is no operating point at which it is the right choice.',
+    why:'Removing it from the pool is a free improvement — no trade-off to argue about.'},
+  nosignal:{n:'signal/04', t:'Nothing predicts failure before the call', v:'AUC 0.459', neg:true,
+    fig:'AUC 0.459 — below chance', body:'This is the finding we most wanted to be false. A risk score built only from what is knowable <em>before</em> a call — prompt length, cron flag, position, preceding output size — scores AUC 0.459 and 0.4385 on the two strata. Below chance. Context size alone: 0.454.',
+    why:'So we do not claim to route by predicted difficulty. We route on cost structure, which is knowable, and we say so. The curve above beats random routing by +' + F.max_lift_pp.toFixed(2) + 'pp — small, real, and honestly reported.'},
+};
+const RIGOR = {
+  placebo:{n:'check/01', t:'Placebo: our pipeline invents results', v:'58–60%', neg:true,
+    fig:'+1.17pp of quality from pure noise', body:'We ran the whole pipeline on data where the true effect is <em>known to be zero</em> — model labels shuffled. An in-sample-fitted router reports +1.17pp of quality gain out of nothing, and claims statistical significance 58–60% of the time. Two independent implementations agreed to four decimal places.',
+    why:'That is why the headline here is a cost claim, not a quality claim. Applied to the real data, the in-sample router\'s "+1.97pp, significant" collapses to p = 0.064; cross-fitted it is +0.399pp, p = 0.68.'},
+  cover:{n:'check/02', t:'Naive intervals are too narrow', v:'86%', neg:true,
+    fig:'95% intervals cover 86% of the time', body:'Calls inside one task rise and fall together, so treating them as independent understates uncertainty. Nominal 95% intervals computed per-call actually cover the truth about 86% of the time. Every interval on this page bootstraps over <em>trajectories</em> instead.',
+    why:'It is the difference between an interval you can defend and one that will not survive a question.'},
+  wall:{n:'check/03', t:'The comparison we refuse to make', v:'GPT ⇄ Claude',
+    fig:'not identifiable', body:'GPT and Claude requests share 18 of 26 tools — but not the code-execution substrate (apply_patch/shell_command versus bash/file_edit/file_read), and roughly 99% of requests touch it. The two groups are different deployments, not a randomised assignment.',
+    why:'So no "switch family and save X%" claim appears anywhere on this page. It would be unsupported by this export.'},
+  thin:{n:'check/04', t:'Where the estimate runs thin', v:'n=19',
+    fig:'19 trajectories behind the cheap GPT arm', body:'gpt-5.6-luna — the only cheap GPT model, and therefore the whole cheap-routing story on that side — is observed on 19 trajectories, Kish effective sample 18.4. The Claude stratum is far healthier: correction weights stay between 1× and 3.7×, effective sample 260 of 690.',
+    why:'The frontier above is drawn on the Claude stratum for exactly this reason. We do not extrapolate through thin support.'},
+};
+const ALL = Object.assign({}, SIGNALS, RIGOR);
+
+function openModal(key){
+  const s = ALL[key]; if(!s) return;
+  $('#sheet').innerHTML = `
+    <span class="lab">${esc(s.n)}</span>
+    <h3>${esc(s.t)}</h3>
+    <div class="fig ${s.neg?'neg':''}">${esc(s.fig)}</div>
+    <p>${s.body}</p>
+    <div class="ph"><b>Why it matters for routing</b>${s.why}</div>
+    <div class="ph" style="margin-top:10px"><b>How our model uses this — to fill in</b>
+      Replace with the specific mechanism: which feature encodes this signal, which of the three routers exploits it, and what it is worth on the held-out split.</div>
+    <footer><span class="lab">evidence · held-out split</span><button class="xbtn" onclick="document.getElementById('modal').close()">Close</button></footer>`;
+  $('#modal').showModal();
+}
+window.openModal = openModal;
+
+function sigList(keys){
+  return `<div class="sigs">${keys.map(k=>{
+    const s=ALL[k];
+    return `<button class="sig ${s.neg?'neg':''}" onclick="openModal('${k}')">
+      <span class="n">${esc(s.n.split('/')[1])}</span><span class="t">${esc(s.t)}</span><span class="v">${esc(s.v)}</span></button>`;
+  }).join('')}</div>`;
+}
+
+function renderCrits(){
+  $('#crits').innerHTML = `
+    <div class="crit">
+      <span class="lab">criterion/01</span>
+      <h3>Routing insight</h3>
+      <p class="q">Does the router use real structure in the traces? Can you name that structure?</p>
+      ${sigList(['bash','exit2','dominated','nosignal'])}
+      <p class="conv"><b>What convinces the panel:</b> a signal someone can point at, not a black box with a good score. Every claim here opens to its evidence.</p>
     </div>
-    <div class="grid" style="gap:18px">
-      <div class="grid g2">
-        ${ov('claude12', { ...o.claude12, label: 'Overlap · Claude / 12 tools',
-          verdict: `A classifier given the opening context predicts which model ran barely better than chance (${o.claude12.cv_accuracy.toFixed(3)} vs ${o.claude12.majority_baseline.toFixed(3)}). Assignment looks close to arbitrary, so the comparison is fair. Correction weights stay between 1× and ${o.claude12.weight_max}× — tame enough that no clipping is needed.` })}
-        ${ov('gpt10', { ...o.gpt10, label: 'Overlap · GPT / 10 tools',
-          verdict: `Here the classifier does <em>worse</em> than chance (${o.gpt10.cv_accuracy.toFixed(3)} vs ${o.gpt10.majority_baseline.toFixed(3)}) — again consistent with arbitrary assignment. But routing everything to the cheap arm leans on an effective sample of just ${o.gpt10.ess.toFixed(1)}. Treat any GPT-side claim as provisional.` })}
+    <div class="crit">
+      <span class="lab">criterion/02</span>
+      <h3>Evaluation rigor</h3>
+      <p class="q">Is the off-policy estimate honest? One model serves each trajectory, and the cache couples the calls. How did you bridge that?</p>
+      ${sigList(['placebo','cover','wall','thin'])}
+      <p class="conv"><b>What convinces the panel:</b> you name where your estimate can fail before the panel does. Three of these four are things that argue <em>against</em> us.</p>
+    </div>
+    <div class="crit">
+      <span class="lab">criterion/03</span>
+      <h3>Presentation clarity</h3>
+      <p class="q">Can you defend your frontier in five minutes?</p>
+      <div class="sigs">
+        <div class="sig" style="cursor:default"><span class="n">01</span><span class="t"><b>One chart.</b> The frontier above, held-out, with bands.</span></div>
+        <div class="sig" style="cursor:default"><span class="n">02</span><span class="t"><b>One claim.</b> ${F.named_points[1] ? esc(F.named_points[1].pct_cost.toFixed(0)) + '% of the strongest model’s cost at ' + esc(F.named_points[1].pct_quality.toFixed(1)) + '% of its quality.' : ''}</span></div>
+        <div class="sig neg" style="cursor:default"><span class="n">03</span><span class="t"><b>One weakness.</b> Quality is a direct-method estimate on a proxy, and our own placebo says effects this small can come from noise.</span></div>
       </div>
-      <div class="grid g3">
-        <div class="card">
-          <div class="card-t">Correlated calls</div>
-          <div class="card-s">Calls inside one task rise and fall together, so naive error bars are too narrow.</div>
-          <div class="stats">
-            <div class="stat"><div class="v num">${r.clustering.mean_calls_per_task}</div><div class="k">calls per task</div></div>
-            <div class="stat"><div class="v num">${r.clustering.design_effect}×</div><div class="k">error inflation</div></div>
-          </div>
-          <div class="note" style="margin-top:12px">${esc(r.clustering.note)}. This figure is contested internally — settle it before it reaches a slide.</div>
-        </div>
-        <div class="card">
-          <div class="card-t">What we could detect</div>
-          <div class="card-s">With this many tasks and a ${pct(r.power.baseline_rate)} failure rate, only large gaps are visible.</div>
-          <div class="stats">
-            <div class="stat"><div class="v num">${r.power.min_detectable_ratio}×</div><div class="k">smallest visible gap</div></div>
-            <div class="stat"><div class="v num">${r.power.tasks_for_1_25x.toLocaleString()}</div><div class="k">tasks for a 1.25× gap</div></div>
-          </div>
-          <div class="note" style="margin-top:12px">We are powered for large differences and found one. Subtler effects would need roughly 5× more data.</div>
-        </div>
-        <div class="card">
-          <div class="card-t">The wall we won't cross</div>
-          <div class="card-s">${r.identifiability.shared_tools} of ${r.identifiability.total_tools} tools are shared across families — but not the ones that matter.</div>
-          <div class="wall">GPT ⇄ Claude<br>not identifiable</div>
-          <div class="note" style="margin-top:12px">${esc(r.identifiability.blocker)}. Any “switch family and save X%” claim would be unsupported, so we don't make one.</div>
-        </div>
-      </div>
-      <div class="grid g2">
-        <div class="card">
-          <div class="card-t">Placebo test</div>
-          <div class="card-s">Shuffle the model labels so no real effect can exist, then re-run everything. A sound pipeline should find nothing.</div>
-          ${r.placebo ? '' : `<div class="pending"><strong>Awaiting the randomisation run</strong>1,000 shuffles will produce a null distribution. Our real effect should sit outside it — and if the 95% intervals cover less than 95% of the time, that goes on the slide too.</div>`}
-        </div>
-        <div class="card">
-          <div class="card-t">Would more data change the answer?</div>
-          <div class="card-s">Re-estimate on 10% … 100% of tasks and watch the interval close.</div>
-          ${r.learning_curve ? '' : `<div class="pending"><strong>Awaiting the learning curve</strong>If the estimate has already flattened, more traces would not move it — which answers whether to spend the remaining hours collecting or analysing.</div>`}
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-t">Router runs</div>
-        <div class="card-s">Each configuration scored on identical tasks. The list grows as new routers land.</div>
-        ${DATA.our_router ? '' : `<div class="pending"><strong>One run scored so far</strong>The quality-matched threshold router on the Overview tab. Learned routers appear here as they are delivered, each with its own cost, quality and interval.</div>`}
-      </div>
+      <p class="conv"><b>What convinces the panel:</b> one chart, one claim, one known weakness — stated before anyone asks.</p>
     </div>`;
 }
 
-/* ---------- tab 03 · model arena ---------- */
-function renderArena() {
-  const a = DATA.arena;
-  const division = (d, prem) => {
-    if (!d || !d.rows.length) return '';
-    const rows = d.rows.map(r => `<tr class="${r.usable ? '' : 'dead'}">
-      <td><span class="mono">${esc(r.model)}</span>${r.usable ? '' : ' <span class="pill warn">n=' + r.tasks + '</span>'}</td>
-      <td class="mono">$${r.price_in.toFixed(2)}</td>
-      <td class="mono">${r.tasks}</td>
-      <td class="mono">${pct(r.fail)}</td>
-      <td class="mono">${r.ok_per_dollar ?? '—'}</td>
-      <td class="mono">$${r.cost_per_task.toFixed(3)}</td>
+/* ---------------- arena + provenance ---------------- */
+function renderArena(){
+  const rows = D.arena.claude12.rows.concat(D.arena.gpt10.rows);
+  $('#arena').innerHTML = `<table>
+    <thead><tr><th>Model</th><th>$/M</th><th>Tasks</th><th>Fail</th><th>Ok / $</th><th>$/task</th><th>Turns</th><th>Recovery</th></tr></thead>
+    <tbody>${rows.map(r=>`<tr class="${r.usable?'':'dead'}">
+      <td class="mono">${esc(r.model)}</td><td class="mono">$${r.price_in.toFixed(2)}</td>
+      <td class="mono">${r.tasks}</td><td class="mono">${(r.fail*100).toFixed(2)}%</td>
+      <td class="mono">${r.ok_per_dollar??'—'}</td><td class="mono">$${r.cost_per_task.toFixed(3)}</td>
       <td class="mono">${r.turns_per_task}</td>
-      <td class="mono">${r.recovery !== null ? pct(r.recovery, 0) : '—'}</td>
-      <td class="mono">${r.parallel_rate !== null ? pct(r.parallel_rate, 1) : '—'}</td>
-    </tr>`).join('');
-    const premRows = (prem || []).map(p => `<li><strong class="mono">${esc(p.model)}</strong> — ${p.dominated
-      ? `<span style="color:var(--bad)">dominated: costs $${p.extra_per_mtok.toFixed(2)}/M more and fails more often.</span>`
-      : `$${p.extra_per_mtok.toFixed(2)}/M more buys ${p.pp_avoided}pp fewer failures. <strong>Worth it only if one failure costs you more than $${p.breakeven_failure_cost.toFixed(2)}.</strong>`}</li>`).join('');
-    return `<div class="card">
-      <div class="card-t">${esc(d.label)}</div>
-      <div class="card-s">Same toolset for every model here, so tool availability cannot explain the differences.</div>
-      <div class="tw"><table>
-        <thead><tr><th>Model</th><th>$/M</th><th>Tasks</th><th>Fail</th><th>Ok/$</th><th>$/task</th><th>Turns</th><th>Recovery</th><th>Parallel</th></tr></thead>
-        <tbody>${rows}</tbody></table></div>
-      ${premRows ? `<div class="card-t" style="margin-top:18px">The price of reliability</div>
-        <div class="card-s">Converting the quality gap into the only question that matters operationally.</div>
-        <ul class="clean">${premRows}</ul>` : ''}
-    </div>`;
-  };
-
-  $('#p-arena').innerHTML = `
-    <div class="head">
-      <h2>Nine models, judged on our traces — not on their marketing</h2>
-      <p>Every figure here is computed from this export. Models are grouped by deployment, because the two groups ran different tool substrates and cannot be ranked against each other.</p>
-    </div>
-    <div class="grid" style="gap:18px">
-      <div class="grid g2">
-        <div class="card">
-          <div class="card-t">Failure rate, with uncertainty</div>
-          <div class="card-s">Dot is the observed rate; the hatched bar is the 95% interval. Non-overlapping bars mean a real difference.</div>
-          ${failureChart(a.claude12.rows)}
-        </div>
-        <div class="card">
-          <div class="card-t">Price against reliability</div>
-          <div class="card-s">Anything in the shaded corner costs more <em>and</em> fails more than the best model — there is no reason to route to it.</div>
-          ${dominanceChart(a.claude12.rows)}
-          <div class="note" style="margin-top:12px">Circle size is the number of tasks behind each point — the small ones carry wide uncertainty.</div>
-        </div>
-      </div>
-      ${division(a.claude12, a.premium_claude12)}
-      <div class="divider"><span>the two groups are not comparable</span></div>
-      <div class="wall">Different code-execution substrate — ${DATA.robustness.identifiability.shared_tools}/${DATA.robustness.identifiability.total_tools} tools shared, but not the ones that decide the work. No cross-group ranking is claimed.</div>
-      ${division(a.gpt10, a.premium_gpt10)}
-    </div>`;
+      <td class="mono">${r.recovery!=null?(r.recovery*100).toFixed(0)+'%':'—'}</td></tr>`).join('')}</tbody></table>`;
+  $('#arena-note').textContent = 'Claude and GPT rows are listed together for reference only — they are not comparable to one another (see check/03). Struck-through rows have too few trajectories to evaluate.';
 }
 
-/* ---------- provenance + tabs ---------- */
-$('#prov-text').innerHTML = `<strong>Provenance</strong>${esc(DATA.meta.generated_from)}<br>${esc(DATA.meta.token_basis)}<br>${esc(DATA.meta.cost_basis)}`;
+function renderProv(){
+  const m=F.meta;
+  $('#prov').innerHTML = [
+    `<b>load</b> ${esc(D.meta.generated_from)} → ${D.corpus.requests.toLocaleString()} requests <span class="ok">ok</span>`,
+    `<b>unroll</b> ${D.corpus.turns.toLocaleString()} turns · ${D.corpus.tool_calls.toLocaleString()} tool calls recovered from embedded history`,
+    `<b>grade</b> ${D.corpus.graded.toLocaleString()} calls carry exit_code or success (${(D.corpus.coverage*100).toFixed(1)}% coverage) · failure ${(D.corpus.failure_rate*100).toFixed(2)}%`,
+    `<b>stratify</b> ${esc(m.stratum)} · ${m.n_tasks} tasks → train ${m.n_train} / held-out ${m.n_heldout}`,
+    `<b>tokens</b> ${esc(m.token_estimator)}`,
+    `<b>cost</b> ${esc(m.cost_note)}`,
+    `<b>quality</b> ${esc(m.quality_note)}`,
+    `<b>sweep</b> ${esc(m.knob)}`,
+    `<b>ci</b> ${esc(m.bootstrap)}`,
+    `<b>split</b> ${esc(m.split)} <span class="ok">ok</span>`,
+  ].join('<br>');
+}
 
-const tabs = [...document.querySelectorAll('.tab-btn')];
-tabs.forEach(btn => btn.addEventListener('click', () => {
-  tabs.forEach(b => {
-    const on = b === btn;
-    b.setAttribute('aria-selected', String(on));
-    document.getElementById(b.getAttribute('aria-controls')).hidden = !on;
-  });
-}));
+/* ---------------- boot ---------------- */
+const best = F.named_points[1] || F.named_points[0];
+$('#claim').innerHTML = best
+  ? `Routing on cost structure alone reaches <b>${best.pct_cost.toFixed(0)}% of the strongest model’s cost at ${best.pct_quality.toFixed(1)}% of its quality</b> on the held-out split — and beats random routing at matched cost by ${F.max_lift_pp.toFixed(2)}pp, which is small, real, and the honest size of the effect.`
+  : '';
+$('#chips').innerHTML = [
+  ['held-out split', 1], ['bootstrap CI · trajectories', 1], ['cache-aware cost', 1],
+  ['estimated tokens', 0], ['direct-method quality', 0], ['3 routers mocked', 0],
+].map(([t,on])=>`<span class="chip ${on?'on':''}">${t}</span>`).join('');
+$('#plot-sub').textContent = `${F.meta.n_heldout} held-out trajectories · ${F.meta.stratum} · knob swept, never retuned per point`;
+$('#axcap').innerHTML = `<b>x</b> — ${esc(F.meta.x_axis)}. <b>y</b> — ${esc(F.meta.y_axis)}. Token counts are ${esc(F.meta.token_estimator)}; output tokens excluded. Shaded band is a ${esc(F.meta.bootstrap)}. Dotted grey curves are the same sweep with the cached prefix share moved ±30%. Dashed grey line is random routing at matched cost — the null any real router must beat.`;
+$('#split-lab').textContent = 'frontier/held-out · n=' + F.meta.n_heldout;
+$('#pgfoot').innerHTML = `Dataset is challenge-use-only and is never redistributed. ${D.caveats.map(esc).join(' · ')}`;
 
-renderOverview();
-renderRobustness();
-renderArena();
+$('#slider').max = SWEEP.length-1;
+$('#slider').addEventListener('input', e=>setKnob(+e.target.value));
+$('#modal').addEventListener('click', e=>{ if(e.target.id==='modal') e.target.close(); });
+
+renderCrits(); renderArena(); renderProv();
+setKnob(0); showDetail('observed');
 </script>

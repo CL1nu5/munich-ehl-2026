@@ -386,9 +386,39 @@ def main():
             strata={k: dict(v) for k, v in sorted(strata.items(), key=lambda x: -sum(x[1].values()))},
         ),
         baseline=baseline,
-        our_router=None,   # <-- Teams A/B fill this in; dashboard shows a pending state until then
         head_to_head=h2h,
         frontier=front,
+        # The three routers the team is building. Each stays `pending` until its evaluation
+        # lands, and the dashboard plots pending models as hollow ghosts so nobody mistakes
+        # a placeholder for a result. To fill one in: set status to "done" and supply
+        # cost_usd + est_success from the SAME head_to_head() evaluation path as every other
+        # policy, or the comparison is not like-for-like.
+        models=[
+            # MOCK COORDINATES — placeholders so the layout can be reviewed. Every one of
+            # these renders with a visible MOCK badge and a dashed outline. Replace with
+            # real head_to_head() output and flip status to "done".
+            dict(id="blackbox", name="Black box", family="ours", status="mock",
+                 arch="neural net · end-to-end",
+                 explainable=False,
+                 cost_usd=0.1378, est_success=0.9641,
+                 ci=[0.9602, 0.9679],
+                 thesis="Learns the routing decision end to end. Highest ceiling, no account of itself.",
+                 criterion_note="Criterion 01 warns against exactly this: a good score nobody can point at."),
+            dict(id="transparent", name="Transparent", family="ours", status="mock",
+                 arch="neural net · feature-constrained",
+                 explainable=True,
+                 cost_usd=0.1451, est_success=0.9628,
+                 ci=[0.9588, 0.9667],
+                 thesis="Constrained so every decision traces back to a named feature.",
+                 criterion_note="Trades a little frontier for an answer to 'name that structure'."),
+            dict(id="complexity", name="Complexity + quality", family="ours", status="mock",
+                 arch="neural net · two-stage",
+                 explainable=True,
+                 cost_usd=0.1524, est_success=0.9634,
+                 ci=[0.9593, 0.9674],
+                 thesis="Stage one estimates task complexity; stage two estimates the quality each model would deliver on it.",
+                 criterion_note="Carries a measured risk: pre-call complexity scored AUC 0.459 — below chance."),
+        ],
         arena=dict(claude12=claude12, gpt10=gpt10,
                    premium_claude12=premium(claude12["rows"]),
                    premium_gpt10=premium(gpt10["rows"])),

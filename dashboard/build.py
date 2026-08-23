@@ -10,21 +10,25 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 TPL = ROOT / "dashboard" / "template.html"
-DATA = ROOT / "results" / "dashboard_data.json"
 OUT = ROOT / "results" / "dashboard.html"
-TOKEN = "/*__DASHBOARD_DATA__*/"
+SLOTS = {
+    "/*__DASHBOARD_DATA__*/": ROOT / "results" / "dashboard_data.json",
+    "/*__FRONTIER_DATA__*/": ROOT / "results" / "frontier_data.json",
+}
 
 def main():
-    if not DATA.exists():
-        sys.exit(f"missing {DATA} — run scripts/build_dashboard_data.py first")
     html = TPL.read_text(encoding="utf-8")
-    if TOKEN not in html:
-        sys.exit(f"placeholder {TOKEN} not found in {TPL}")
-    payload = json.dumps(json.loads(DATA.read_text(encoding="utf-8")), separators=(",", ":"))
-    # </script> inside the JSON would close the host <script> tag early
-    payload = payload.replace("</", "<\\/")
+    for token, path in SLOTS.items():
+        if not path.exists():
+            sys.exit(f"missing {path} — run scripts/build_dashboard_data.py "
+                     f"and scripts/build_frontier.py first")
+        if token not in html:
+            sys.exit(f"placeholder {token} not found in {TPL}")
+        payload = json.dumps(json.loads(path.read_text(encoding="utf-8")), separators=(",", ":"))
+        # </script> inside the JSON would close the host <script> tag early
+        html = html.replace(token, payload.replace("</", "<\\/"))
     OUT.parent.mkdir(exist_ok=True)
-    OUT.write_text(html.replace(TOKEN, payload), encoding="utf-8")
+    OUT.write_text(html, encoding="utf-8")
     print(f"wrote {OUT}  ({OUT.stat().st_size:,} bytes)")
 
 if __name__ == "__main__":
