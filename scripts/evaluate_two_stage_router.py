@@ -249,10 +249,10 @@ def learned_chooser(artifact, tolerance, min_stratum):
     return choose
 
 
-def heuristic_chooser(artifact, min_stratum):
+def heuristic_chooser(artifact, min_stratum, threshold=15_000):
     def choose(row, _complexity):
         incumbent = canonical_action(row["logged_model"])
-        if float(row["x_total_context_tokens_est"]) >= 15_000:
+        if float(row["x_total_context_tokens_est"]) >= threshold:
             return incumbent
         target = "sonnet" if incumbent in CLAUDE_ACTIONS else "luna"
         from train_two_stage_router import action_supported
@@ -290,7 +290,7 @@ def strip_internal(row):
 
 def markdown_summary(comparison, sensitivity, ope_sensitivity, selected_tolerance):
     selected = next(row for row in comparison if row["validation_selected"])
-    heuristic = next(row for row in comparison if row["policy_type"] == "heuristic")
+    heuristic = next(row for row in comparison if row["policy"] == "Public-tier 15k heuristic")
     return f"""# Completed two-stage router evaluation
 
 ## Same-test comparison
@@ -329,6 +329,11 @@ def main():
     parser.add_argument("--text-features", type=int, default=96)
     parser.add_argument("--quality-penalty", type=float, default=15.0)
     parser.add_argument("--quality-tolerance", type=float)
+    parser.add_argument(
+        "--heuristic-thresholds",
+        default="5000,10000,15000,20000,30000,50000",
+        help="Comma-separated opening-token thresholds for the diagnostic heuristic sweep.",
+    )
     parser.add_argument("--caliper-quantile", type=float, default=0.95)
     parser.add_argument("--min-stratum", type=int, default=3)
     parser.add_argument("--fallback-action", default="sonnet")
@@ -377,10 +382,16 @@ def main():
         lambda row, complexity: canonical_action(row["logged_model"]),
         "Incumbent logged route", "incumbent", False, args,
     ))
-    comparison.append(policy_metrics(
-        test, base_artifact, targets, heuristic_chooser(base_artifact, args.min_stratum),
-        "Public-tier 15k heuristic", "heuristic", False, args,
-    ))
+    heuristic_thresholds = sorted({
+        int(value) for value in args.heuristic_thresholds.split(",") if value.strip()
+    })
+    for threshold in heuristic_thresholds:
+        comparison.append(policy_metrics(
+            test, base_artifact, targets,
+            heuristic_chooser(base_artifact, args.min_stratum, threshold),
+            f"Public-tier {threshold / 1000:g}k heuristic",
+            "heuristic", False, args,
+        ))
     for tolerance in TOLERANCES:
         comparison.append(policy_metrics(
             test, base_artifact, targets,
@@ -452,7 +463,7 @@ def main():
     )
 
     selected = base_selected
-    heuristic = next(row for row in comparison if row["policy_type"] == "heuristic")
+    heuristic = next(row for row in comparison if row["policy"] == "Public-tier 15k heuristic")
     print(
         f"selected learned: saving={selected['cost_savings_pct_est']:.1%} "
         f"quality_delta={selected['quality_delta_est']:+.4f} "

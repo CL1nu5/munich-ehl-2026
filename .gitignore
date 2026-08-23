@@ -5,3 +5,9 @@ submission/
 __pycache__/
 *.tar.gz
 .venv/
+
+# Generated presentation artifacts and local PowerPoint files
+/Viktor_Router_Technical_Deck.pptx
+presentation/*.inspect.ndjson
+presentation/Viktor_Router_Technical_Deck/
+~$*.pptx
