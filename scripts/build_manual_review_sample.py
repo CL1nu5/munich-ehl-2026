@@ -42,6 +42,11 @@ PROXY_CHECKS = {
     529: ("SUCCESS", "medium", "valid silent heartbeat after verifying no accessible activity"),
 }
 
+# The judgments above were performed on chunk 01 only. Chunk 02 remains a
+# genuinely untouched external test during evaluation and uses telemetry labels
+# until it receives its own independent manual review.
+MANUAL_REVIEW_CHUNK = "trajectories_v1_01.jsonl"
+
 
 def unknown_judgment(line):
     if line in UNKNOWN_PARTIAL:
@@ -175,6 +180,8 @@ def main():
 
     sample = []
     for row in evaluation:
+        if row["source_chunk"] != MANUAL_REVIEW_CHUNK:
+            continue
         line = int(row["source_line"])
         if row["y_outcome_label"] == "UNKNOWN":
             manual_label, confidence, reason = unknown_judgment(line)

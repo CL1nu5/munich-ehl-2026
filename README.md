@@ -54,11 +54,19 @@ is reported with a stabilized doubly robust off-policy estimate on a
 template-held-out test set. Policy selection also requires minimum overlap ESS
 and agreement with the direct outcome model.
 
-The selected `epsilon = 0.025` policy saves **47.6%** of assumed opening-input
-cost on the 198-row template-held-out test set. Its stabilized doubly robust
-quality delta is **+0.018**, with bootstrap 95% CI **[-0.008, +0.042]**. The
-defensible claim is lower assumed cost with no detected quality loss, not a
-proven quality increase.
+Before combined retraining, the frozen chunk-01 router was evaluated once on
+all 1,000 new chunk-02 trajectories. On the 901 rows with usable automatic
+telemetry outcomes it saved **43.4%** of assumed opening-input cost. Its
+stabilized doubly robust quality delta was **+0.010**, with bootstrap 95% CI
+**[-0.005, +0.025]**. Chunk 02 influenced neither training nor policy selection
+for this external check.
+
+The final model is then retrained on both chunks. Its newly generated
+template-held-out test uses 378 of the 1,892 usable combined rows. The selected
+`epsilon = 0.030` policy saves **40.6%** of assumed opening-input cost. Its
+stabilized doubly robust quality delta is **+0.004**, with bootstrap 95% CI
+**[-0.016, +0.022]**. The defensible claim is lower assumed cost with no
+detected quality loss, not a proven quality increase.
 
 ## Important artifacts
 
@@ -66,6 +74,8 @@ proven quality increase.
 |---|---|
 | `models/benchmark_priors.json` | Assumed public-analogue capability priors and source links |
 | `models/two_stage_router.json` | Final model refit on all usable rows |
+| `models/two_stage_router_chunk01.json` | Frozen pre-chunk-02 artifact used for the external test |
+| `scripts/evaluate_external_chunk.py` | Leakage-free evaluation of a frozen artifact on a new chunk |
 | `results/complexity_scores.csv` | Observed and predicted complexity per usable trajectory |
 | `results/two_stage_validation_frontier.csv` | Validation policy-selection frontier |
 | `results/two_stage_test.csv` | Template-held-out test decisions and estimates |
