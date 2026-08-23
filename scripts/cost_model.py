@@ -10,23 +10,32 @@ pays the uncached rate for the whole prefix.
 Cached share of call i is estimated as the token size of the item-level prefix
 that call i shares with call i-1 of the same trajectory.
 
-Model ids in the export are anonymized (families claude-opus/-sonnet/-fable and
-gpt-5.6-* across generations, e.g. claude-opus-5, claude-opus-4-8, gpt-5.6-terra),
-so no public price sheet exists. DEFAULT_PRICING is an ASSUMPTION for relative
-comparisons; unknown ids fall back to their family rate by prefix match — if a price sheet is posted in the
-challenge Discord, put it in scripts/pricing.json; either way, state your
-pricing assumption in the writeup.
+The challenge model ids are anonymized. DEFAULT_PRICING is therefore an explicit
+public-analogue scenario using provider list prices checked on 2026-08-22, not a
+verified price sheet for the logged models. If the organizers provide prices,
+place them in scripts/pricing.json. Unknown legacy ids fall back by family
+prefix; every reported dollar figure must disclose this assumption.
 """
 import json
 from pathlib import Path
 from load_trajectories import est_tokens
 
-DEFAULT_PRICING = {  # per 1M est. tokens: [uncached_input, cached_input, output] — ASSUMED, not official
-    "claude-opus": [15.00, 1.50, 75.00],   # family prefixes: match any generation (claude-opus-5, claude-opus-4-8, ...)
-    "claude-sonnet": [3.00, 0.30, 15.00],
-    "claude-fable": [0.80, 0.08, 4.00],
-    "gpt-5.6": [2.00, 0.50, 8.00],
+DEFAULT_PRICING = {  # per 1M tokens: [uncached input, cached input, output]
+    "claude-fable": [10.00, 1.00, 50.00],
+    "claude-opus": [5.00, 0.50, 25.00],
+    "claude-sonnet": [2.00, 0.20, 10.00],
+    "gpt-5.6-sol": [5.00, 0.50, 30.00],
+    "gpt-5.6-terra": [2.00, 0.20, 12.00],
+    "gpt-5.6-luna": [0.20, 0.02, 1.20],
+    "gpt-5.6": [2.00, 0.20, 12.00],
     "_default": [2.00, 0.40, 8.00],
+}
+
+PRICING_SOURCES = {
+    "anthropic": "https://www.anthropic.com/pricing",
+    "anthropic_sonnet_5": "https://www.anthropic.com/research/claude-sonnet-5",
+    "openai": "https://openai.com/api/pricing/",
+    "openai_2026_07_30_update": "https://openai.com/index/advancing-the-price-performance-frontier-with-gpt-5-6/",
 }
 
 def load_pricing():

@@ -1,83 +1,104 @@
-# Viktor Challenge Starter — Build the Router
+# Viktor learned model router
 
-Starter kit for the **Viktor Challenge** at the TUM.ai hackathon (Munich, 22–23 Aug 2026).
-From real LLM-request logs, build a router that picks the right model for every call —
-then prove it works, even though the log shows only the model that ran, and no outputs or token counts.
+Offline, dependency-free router for the TUM.ai Viktor Challenge.
 
-## Quick start (5 minutes)
+## Final pipeline
 
 ```bash
-# 1. No dataset yet? Generate a synthetic sample with the same shape:
-python scripts/make_synthetic_sample.py            # writes ./export/
-
-# 2. Got the real dataset links (shipped at kickoff)? Then instead: the export ships
-#    as trajectories_v1_<index>.jsonl.tar.gz archives — download, verify the posted
-#    SHA-256, then:  mkdir -p export && tar xzf trajectories_v1_01.jsonl.tar.gz -C export/
-
-# 3. Sanity-check the export, reconstruct trajectories, print stats:
 python scripts/load_trajectories.py export/
-
-# 4. Run the baseline heuristic router + cache-aware cost report:
-python scripts/baseline_router.py export/
-
-# 5. Turn results into a cost–quality frontier CSV (+ PNG if matplotlib is installed):
-python scripts/plot_frontier.py results/routes.jsonl
+python scripts/audit_trajectory_groups.py export/
+python scripts/build_feature_table.py export/
+python scripts/build_evaluation_table.py export/
+python scripts/build_manual_review_sample.py export/
+python scripts/train_two_stage_router.py
+python scripts/two_stage_router.py
+python scripts/evaluate_two_stage_router.py
+python scripts/build_analysis_notebooks.py
 ```
 
-Python 3.10+, standard library only (matplotlib optional for the PNG).
+The raw export is never modified.
 
-## Complexity training dataset
+## Pitch demo
 
-Build leakage-safe train, validation, and test files with transparent prompt and
-observed-execution complexity scores:
+Replay two real held-out decisions—one cost-saving downgrade and one quality-
+guardrail up-route—with no API calls:
 
 ```bash
-python scripts/build_complexity_dataset.py export/
+python scripts/demo_router.py --pause
 ```
 
-Outputs are written to the gitignored `results/complexity_dataset/` directory.
-Each split has aligned `*_inputs.jsonl`, `*_targets.jsonl`, and
-`*_metadata.jsonl` files. Related exact-prefix requests and semantic
-near-duplicate prompts are always assigned to the same split. All scaling and
-normalization is fitted on training rows only. The complete walkthrough and an
-optional TF–IDF baseline are in `notebooks/complexity_pipeline.ipynb`.
+The demo reads the untouched test-set result table and is designed to take
+about 35 seconds during the five-minute pitch.
 
-## Experimental model catalog
+## Architecture
 
-`scripts/model_catalog.py` contains useful stdlib-only fitting and routing machinery,
-but its bundled model identities, benchmark cards, tier order, and sources are
-**unverified assumptions**. The challenge briefing says the ids are anonymized, and
-`scripts/pricing.json` is likewise an assumed price sheet unless the organizers replace
-it. The catalog CLI is therefore disabled by default. For local experimentation only:
+1. **Workload model:** predicts a 0–100 execution-workload score from only the
+   opening context. Its target combines later token growth, tool calls, and
+   distinct tools. Numeric features are augmented with sanitized TF-IDF features
+   from the opening instruction.
+2. **Execution-risk model:** separately predicts whether the run will contain a
+   tool error, user correction, or duplicate successful side effect. Failures are
+   not treated as intrinsic task workload.
+3. **Quality model:** predicts task difficulty and adds a cross-validated,
+   non-negative benchmark-capability effect for each candidate. Model price is
+   deliberately excluded from quality prediction and used only by the policy.
+4. **Learned policy:** among candidates with historical feature overlap, choose
+   the cheapest model within the validation-selected quality tolerance of the
+   best predicted model. Requests outside all support regions use a fixed
+   Sonnet fallback; the logged model is never required at deployment.
 
-```bash
-python scripts/model_catalog.py --allow-unverified-assumptions
-```
+The train/validation/test split keeps recurring sanitized task templates intact,
+so near-identical scheduled jobs cannot cross partitions. Stage-one inputs are
+generated with template-grouped folds for quality-model training. Final quality
+is reported with a stabilized doubly robust off-policy estimate on a
+template-held-out test set. Policy selection also requires minimum overlap ESS
+and agreement with the direct outcome model.
 
-Do not present its generated rankings or cutoffs as evidence until the cards are replaced
-with organizer-approved inputs. The unit tests validate fitting behavior under their
-inputs, not the truth of the bundled observations.
+The selected `epsilon = 0.025` policy saves **47.6%** of assumed opening-input
+cost on the 198-row template-held-out test set. Its stabilized doubly robust
+quality delta is **+0.018**, with bootstrap 95% CI **[-0.008, +0.042]**. The
+defensible claim is lower assumed cost with no detected quality loss, not a
+proven quality increase.
 
-## Using a coding agent
+## Important artifacts
 
-Point Claude Code / Codex / Cursor / opencode at this repo — `AGENTS.md` briefs your agent.
-In Claude Code you also get slash commands:
-
-- `/setup` — set up everything needed to participate
-- `/make-presentation` — build a Viktor-branded presentation of your solution
-- `/prepare-submission` — package your solution into a formal submission
-
-## What's here
-
-| Path | What |
+| Path | Purpose |
 |---|---|
-| `AGENTS.md` | Agent briefing: dataset shape, the cache trap, judging, starter ideas |
-| `skills/` | The three guided workflows above (plain Markdown, readable by humans too) |
-| `scripts/` | Loader + trajectory reconstruction, baseline router, cache-aware cost model (estimated tokens), frontier plot, synthetic sample |
-| `templates/presentation.html` | Self-contained branded slide template |
+| `models/benchmark_priors.json` | Assumed public-analogue capability priors and source links |
+| `models/two_stage_router.json` | Final model refit on all usable rows |
+| `results/complexity_scores.csv` | Observed and predicted complexity per usable trajectory |
+| `results/two_stage_validation_frontier.csv` | Validation policy-selection frontier |
+| `results/two_stage_test.csv` | Template-held-out test decisions and estimates |
+| `results/two_stage_summary.md` | Main result, methodology, and limitations |
+| `results/two_stage_routes.jsonl` | Final route for every corrected trajectory |
+| `results/evaluator_comparison.csv` | Same-test incumbent, heuristic, and learned frontier |
+| `results/benchmark_sensitivity.csv` | Alternative benchmark-prior mappings |
+| `results/ope_weight_sensitivity.csv` | Clipped importance-weight robustness diagnostic |
+| `results/cost_quality_frontier.svg` | Presentation-ready final frontier chart |
+| `results/evaluator_summary.md` | Final evaluator claim and limitations |
 
-## Rules that matter
+## Analysis notebooks
 
-- **License:** challenge use only — no redistribution of the dataset. Full terms ship with the download.
-- No GPU or API keys needed. Judge-model rescoring is allowed (credits announced at kickoff).
-- Questions → the challenge Discord; the Viktor team answers there all weekend.
+The notebooks are pre-rendered, so they open with their charts and findings even
+without rerunning a kernel. Rebuild them and the standalone figures with
+`python scripts/build_analysis_notebooks.py`.
+
+| Path | Purpose |
+|---|---|
+| `notebooks/01_data_and_label_audit.ipynb` | Data mix, logged-model coverage, and outcome-label balance |
+| `notebooks/02_complexity_and_quality_diagnostics.ipynb` | Complexity accuracy, category effects, predictive uncertainty, and quality calibration |
+| `notebooks/03_router_frontier_and_ope.ipynb` | Held-out frontier, overlap diagnostics, and sensitivity analyses |
+| `results/figures/` | SVG and PNG versions of every notebook chart for presentations |
+
+## Assumptions
+
+- Token counts are estimated as serialized characters / 4; no measured usage is
+  present in the export.
+- The challenge IDs are anonymized. Capability priors are normalized ordinal
+  public-analogue assumptions, not verified mappings or copied leaderboard
+  percentages; cross-family spacing is tested in sensitivity analysis.
+- Default prices are a public-analogue scenario checked on 2026-08-22, not the
+  challenge's factual prices. Replace them with `scripts/pricing.json` if the
+  organizers provide a price sheet.
+- Only the factual model outcome is observed. Counterfactual quality remains an
+  off-policy estimate, not randomized evidence.

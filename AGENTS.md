@@ -5,7 +5,6 @@ of real agent trajectories, build a **model router** and an **honest off-policy 
 
 ## Guided workflows (read the one you need, follow it step by step)
 
-- `skills/setup/SKILL.md` — environment + dataset setup, sanity checks, first baseline
 - `skills/make-presentation/SKILL.md` — Viktor-branded presentation of the solution
 - `skills/prepare-submission/SKILL.md` — package the solution into a formal submission
 
