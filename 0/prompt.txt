@@ -1,0 +1,5 @@
+Clean up the project commit and push it, before 12
+
+---
+
+clean up, also the code and the structure fast before 12

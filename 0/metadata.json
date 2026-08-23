@@ -1,0 +1,57 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M0Q0GQK0FFXAXJMANGWC33KJ",
+  "session_id": "01a02e05-fcdb-7523-8ddb-42b9b911c7e0",
+  "strategy": "manual-commit",
+  "created_at": "2026-08-23T09:51:36.086452Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".gitignore",
+    "README.md"
+  ],
+  "agent": "Codex",
+  "model": "gpt-5.6-terra",
+  "turn_id": "02dbaa9d4848",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 34097,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 324665,
+    "output_tokens": 5281,
+    "api_call_count": 14
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-08-23T09:51:36.065462Z",
+    "agent_lines": 2,
+    "agent_removed": 0,
+    "human_added": 0,
+    "human_modified": 94,
+    "human_removed": 61,
+    "total_committed": 96,
+    "total_lines_changed": 157,
+    "agent_percentage": 1.2738853503184715,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 1867,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0,
+      "user_added_per_file": {
+        "docs/combined-workflow-overview.svg": 261,
+        "docs/complexity-score-explained.md": 206,
+        "presentation/README.md": 24,
+        "presentation/build_deck.py": 316,
+        "presentation/build_pptx.py": 390,
+        "presentation/final-pitch.html": 262,
+        "team/checkpoints/model.json": 408
+      }
+    }
+  ]
+}
