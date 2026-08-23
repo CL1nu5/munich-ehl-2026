@@ -132,6 +132,8 @@ def build_data_notebook():
 def build_model_notebook():
     complexity = read_csv(ROOT / "results/complexity_scores.csv")
     test = read_csv(ROOT / "results/two_stage_test.csv")
+    router_summary = json.loads((ROOT / "results/two_stage_summary.json").read_text(encoding="utf-8"))
+    tolerance = float(router_summary["selected_quality_tolerance"])
     observed = [float(row["observed_complexity"]) for row in test]
     predicted = [float(row["predicted_complexity"]) for row in test]
     errors = [prediction - actual for prediction, actual in zip(predicted, observed)]
@@ -184,7 +186,7 @@ def build_model_notebook():
         code(f"TRAJECTORY_ID = '{representative['trajectory_id']}'\nrow = next(r for r in test if r['trajectory_id'] == TRAJECTORY_ID)\ncenter=float(row['predicted_complexity'])\nerrors=[float(r['predicted_complexity'])-float(r['observed_complexity']) for r in test]\nrng=random.Random(20260823)\nsamples=[max(0,min(100,center-rng.choice(errors))) for _ in range(5000)]\ndisplay(SVG(histogram({{'Empirical predictive distribution': samples}}, 'A point score becomes an empirical uncertainty distribution', f'Representative opening request · predicted {{center:.1f}} · residual bootstrap, not a Bayesian posterior', bins=20, x_min=0, x_max=100)))\n", 4, svg=uncertainty_svg),
         markdown("## Quality head\n\nThe quality model combines task difficulty with a non-negative capability-prior effect. Price is excluded from quality prediction and enters only after quality has been estimated."),
         code("display(SVG(histogram({'Direct predicted quality':[float(r['direct_policy_quality'])*100 for r in test], 'Observed proxy quality':[float(r['observed_quality'])*100 for r in test]}, 'Quality remains difficult to discriminate', 'Held-out distributions; values shown as percentage points', bins=18, x_min=50, x_max=100)))\n", 5, svg=quality_svg),
-        markdown("### Routing decision\n\nFor every historically supported candidate, predict quality. Keep candidates within validation-selected `epsilon = 0.025` of the best predicted quality, then choose the cheapest. If no model has comparable historical support, use the fixed Sonnet fallback."),
+        markdown(f"### Routing decision\n\nFor every historically supported candidate, predict quality. Keep candidates within validation-selected `epsilon = {tolerance:.3f}` of the best predicted quality, then choose the cheapest. If no model has comparable historical support, use the fixed Sonnet fallback."),
     ]
     save_notebook("02_complexity_and_quality_diagnostics.ipynb", cells)
 
@@ -193,6 +195,7 @@ def build_frontier_notebook():
     comparison = read_csv(ROOT / "results/evaluator_comparison.csv")
     ope = read_csv(ROOT / "results/ope_weight_sensitivity.csv")
     benchmark = read_csv(ROOT / "results/benchmark_sensitivity.csv")
+    router_summary = json.loads((ROOT / "results/two_stage_summary.json").read_text(encoding="utf-8"))
     frontier_svg = frontier_chart(comparison)
     caps = [row["weight_cap"] for row in ope]
     deltas = [float(row["quality_delta_est"]) for row in ope]
@@ -213,6 +216,14 @@ def build_frontier_notebook():
     (FIGURES / "ope_weight_sensitivity.svg").write_text(ope_svg, encoding="utf-8")
     (FIGURES / "benchmark_sensitivity.svg").write_text(benchmark_svg, encoding="utf-8")
     selected = next(row for row in comparison if row["validation_selected"] == "1")
+    test_n = int(selected["test_n"])
+    tolerance = float(router_summary["selected_quality_tolerance"])
+    saving = float(selected["cost_savings_pct_est"])
+    quality_delta = float(selected["quality_delta_est"])
+    ci_low = float(selected["quality_delta_ci_low"])
+    ci_high = float(selected["quality_delta_ci_high"])
+    external_path = ROOT / "results/chunk02_external/summary.json"
+    external = json.loads(external_path.read_text(encoding="utf-8")) if external_path.exists() else None
     summary = (
         f"Selected policy: {selected['policy']}\n"
         f"Assumed cost savings: {100*float(selected['cost_savings_pct_est']):.1f}%\n"
@@ -221,16 +232,28 @@ def build_frontier_notebook():
         f"Overlap ESS: {float(selected['overlap_effective_sample_size']):.1f}"
     )
     cells = [
-        markdown("# 03 · Router frontier and off-policy evaluation\n\nThe headline is a frontier, not a single threshold. Every point is evaluated on the same 198-row template-held-out split."),
+        markdown(f"# 03 · Router frontier and off-policy evaluation\n\nThe headline is a frontier, not a single threshold. Every point is evaluated on the same {test_n}-row template-held-out split."),
         code(COMMON + "\ncomparison=read_csv(ROOT/'results/evaluator_comparison.csv')\nope=read_csv(ROOT/'results/ope_weight_sensitivity.csv')\nbenchmark=read_csv(ROOT/'results/benchmark_sensitivity.csv')\n", 1, summary),
-        markdown("## Cost–quality frontier\n\nThe selected `epsilon = 0.025` point satisfies validation guardrails for direct quality, stabilized doubly robust quality, savings, and overlap."),
+        markdown(f"## Cost–quality frontier\n\nThe selected `epsilon = {tolerance:.3f}` point satisfies validation guardrails for direct quality, stabilized doubly robust quality, savings, and overlap."),
         code("display(SVG(frontier_chart(comparison)))\n", 2, svg=frontier_svg),
         markdown("## Off-policy robustness\n\nThe log reveals only one model outcome per trajectory. Stabilized doubly robust estimation corrects the direct quality model on policy/behavior matches. Weight clipping checks whether a few high-propensity corrections dominate."),
         code("display(SVG(line_chart([r['weight_cap'] for r in ope], [float(r['quality_delta_est']) for r in ope], 'The quality estimate survives importance-weight clipping', 'Stabilized doubly robust quality delta under finite-sample weight caps')))\n", 3, svg=ope_svg),
         markdown("## Assumption sensitivity\n\nThe challenge model IDs are anonymized. Public benchmark and price information is therefore an analogue scenario, not a verified mapping."),
         code("display(SVG(bar_chart([r['scenario'].replace('gpt_sol_luna_swapped','Sol/Luna swapped') for r in benchmark], [100*float(r['cost_savings_pct_est']) for r in benchmark], 'Pricing and capability assumptions move the savings estimate', 'Assumed opening-input savings under benchmark-prior sensitivity scenarios', value_format=lambda v:f'{v:.1f}%')))\n", 4, svg=benchmark_svg),
-        markdown("### Defensible conclusion\n\nThe selected learned router reduces **assumed opening-input cost by 47.6%**, with no detected quality loss. The quality point estimate is `+0.018`, but its 95% interval `[-0.008, +0.042]` crosses zero. The dominant limitation is unobserved counterfactual quality, compounded by missing final responses and an assumed price/model mapping."),
+        markdown(f"### Defensible conclusion\n\nThe selected learned router reduces **assumed opening-input cost by {saving:.1%}**, with no detected quality loss. The quality point estimate is `{quality_delta:+.3f}`, but its 95% interval `[{ci_low:+.3f}, {ci_high:+.3f}]` crosses zero. The dominant limitation is unobserved counterfactual quality, compounded by missing final responses and an assumed price/model mapping."),
     ]
+    if external:
+        result = external["result"]
+        cells.insert(2, markdown(
+            "## Truly external chunk-02 check\n\n"
+            "Before retraining on both chunks, the frozen chunk-01 router was applied to all "
+            f"{external['external_rows']} new trajectories. On the {external['usable_rows']} rows "
+            "with usable automatic outcomes it saved "
+            f"**{result['cost_savings_pct_est']:.1%}** of assumed opening-input cost. The "
+            f"quality delta was `{result['dr_quality_delta']:+.3f}` with 95% CI "
+            f"`[{result['dr_quality_delta_ci_low']:+.3f}, {result['dr_quality_delta_ci_high']:+.3f}]`. "
+            "Chunk 02 influenced neither fitting nor threshold selection in this check."
+        ))
     save_notebook("03_router_frontier_and_ope.ipynb", cells)
 
 

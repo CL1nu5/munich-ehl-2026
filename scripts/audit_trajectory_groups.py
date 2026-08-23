@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """Audit the starter loader's multi-request trajectory candidates.
 
-The starter groups on the first 2,000 characters of the first user message.
-For this export, all 24 multi-request candidates were manually reviewed and
-are separate scheduled/event runs rather than growing histories of one task.
-This script records the evidence and writes explicit, reproducible overrides.
+The starter groups on the first 2,000 characters of the first user message,
+which can collide for recurring scheduled/event prompts. A real multi-call
+trajectory must form an exact item-level growing-history prefix. Candidate
+groups whose full opening messages are distinct and do not form that prefix
+are split into separate trajectories. Ambiguous groups stop the pipeline for
+manual review instead of being silently reassigned.
 
 Usage: python scripts/audit_trajectory_groups.py export/
 """
@@ -16,21 +18,6 @@ import json
 from pathlib import Path
 
 from load_trajectories import first_user_text, group_trajectories, iter_requests
-
-
-# Manually reviewed against run timestamps/event ids, model consistency, and
-# item-level history growth. Keeping this explicit makes the data decision
-# auditable instead of hiding it in a fuzzy matcher.
-MANUAL_SPLIT_KEYS = {
-    "027a7e59dcc1ed35", "0b5041cdb0f6548a", "15b6394311ee93a6",
-    "20aa5abee23cd5b4", "2a09408f6a3369cb", "2e1be2c096cbd29c",
-    "368396b4e15ab06d", "3f63945c35f26ca5", "4215b6f24c6eebff",
-    "7c496702d32a0883", "85bda2a6ab229bd3", "85ea85e3070e6cbb",
-    "86f75d8a692327ad", "8d1a4d2d1b4b37f5", "8fd2f7ea814f4752",
-    "965948a699d61f6d", "e2abb3aa1abdff7b", "e3af5cbdc023e6a0",
-    "47d7c8997f5801df", "52ca580b2115132f", "563b4fee87f649ae",
-    "767e735a678c17cf", "e71e8dac0b90e4ca", "ef9f29a29de19c9b",
-}
 
 
 def common_prefix_chars(texts):
@@ -64,16 +51,8 @@ def main():
     groups = group_trajectories(req for _, _, req in records)
     multi = {key: calls for key, calls in groups.items() if len(calls) > 1}
 
-    unexpected = set(multi) - MANUAL_SPLIT_KEYS
-    missing = MANUAL_SPLIT_KEYS - set(multi)
-    if unexpected or missing:
-        raise SystemExit(
-            "manual audit keys do not match this export; review required: "
-            f"unexpected={sorted(unexpected)} missing={sorted(missing)}"
-        )
-
-    audit_rows = []
-    overrides = {}
+    evidence = {}
+    ambiguous = []
     for key, calls in sorted(multi.items()):
         texts = [first_user_text(call) for call in calls]
         ordered = sorted(calls, key=lambda call: len(call["input"]))
@@ -81,6 +60,20 @@ def main():
             is_item_prefix(ordered[i]["input"], ordered[i + 1]["input"])
             for i in range(len(ordered) - 1)
         )
+        full_openings_distinct = len(set(texts)) == len(texts)
+        evidence[key] = (texts, prefix_chain, full_openings_distinct)
+        if prefix_chain or not full_openings_distinct:
+            ambiguous.append(key)
+    if ambiguous:
+        raise SystemExit(
+            "ambiguous multi-request groups require manual review; no overrides "
+            f"were written: {ambiguous}"
+        )
+
+    audit_rows = []
+    overrides = {}
+    for key, calls in sorted(multi.items()):
+        texts, prefix_chain, full_openings_distinct = evidence[key]
         models = sorted({call.get("model", "unknown") for call in calls})
         reason = (
             "distinct recurring/event runs; full opening messages differ; no exact "
@@ -109,6 +102,7 @@ def main():
             "models": "|".join(models),
             "mixed_models": int(len(models) > 1),
             "full_first_user_unique": len(set(texts)),
+            "full_openings_distinct": int(full_openings_distinct),
             "common_first_user_prefix_chars": common_prefix_chars(texts),
             "exact_item_prefix_chain": int(prefix_chain),
             "decision": "split_all_requests",

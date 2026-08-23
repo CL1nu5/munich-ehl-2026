@@ -125,7 +125,8 @@ def frontier_chart(rows, title="Held-out cost–quality frontier", width=940, he
     chart_w, chart_h = width - left - right, height - top - bottom
     sx = lambda value: left + (value - x_min) / (x_max - x_min) * chart_w
     sy = lambda value: top + (y_max - value) / (y_max - y_min) * chart_h
-    parts = [_header(width, height, title, "198 template-held-out trajectories · lower cost and higher quality is better")]
+    test_n = rows[0].get("test_n", "unknown") if rows else "unknown"
+    parts = [_header(width, height, title, f"{test_n} template-held-out trajectories · lower cost and higher quality is better")]
     for index in range(5):
         yv = y_min + (y_max-y_min) * index / 4
         y = sy(yv)
