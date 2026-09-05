@@ -1,9 +1,20 @@
+# Challenge data and derived outputs (never redistribute).
 export/
 results/
 submission/
+trajectories_v1_*.jsonl
 *.zip
-__pycache__/
 *.tar.gz
+
+# Python and local environments.
+__pycache__/
+*.py[cod]
 .venv/
-.DS_Store
 .pytest_cache/
+.ipynb_checkpoints/
+
+# Local credentials and machine files.
+.env
+.env.*
+!.env.example
+.DS_Store

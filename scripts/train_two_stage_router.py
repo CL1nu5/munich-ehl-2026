@@ -8,7 +8,7 @@ At routing time the policy chooses the cheapest supported model whose predicted
 quality is within epsilon of the best candidate.
 
 All models are dependency-free ridge regressions and run offline. Evaluation is
-performed on a deterministic model-stratified holdout with a doubly robust
+performed on a deterministic task-template-grouped holdout with a doubly robust
 off-policy estimator.
 
 Usage: python scripts/train_two_stage_router.py

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-labelledby="title desc">
+  <title id="title">Viktor Router</title>
+  <desc id="desc">Model routing from offline agent traces. Built at Munich EHL, TUM.ai, 2026. A request branches to three models, with one route selected.</desc>
+  <rect width="1200" height="360" rx="16" fill="#150079"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="56" y="58" fill="#FFBD9E" font-size="13" font-weight="700" letter-spacing="2">MUNICH EHL / TUM.ai / 2026</text>
+    <text x="52" y="153" fill="#FBFAFF" font-size="72" font-weight="700" letter-spacing="-3">Viktor Router</text>
+    <text x="56" y="200" fill="#DDD7FF" font-size="22">Model routing from offline agent traces.</text>
+    <line x1="56" y1="260" x2="606" y2="260" stroke="#6748FD"/>
+    <text x="56" y="299" fill="#FBFAFF" font-size="14">One opening request.</text>
+    <text x="243" y="299" fill="#FBFAFF" font-size="14">One model for the task.</text>
+    <text x="448" y="299" fill="#FFBD9E" font-size="14">An honest estimate.</text>
+    <g fill="none" stroke-width="2">
+      <path d="M742 180 H794 Q814 180 814 160 V98 Q814 78 834 78 H955" stroke="#8171C5"/>
+      <path d="M742 180 H955" stroke="#FFBD9E" stroke-width="3"/>
+      <path d="M742 180 H794 Q814 180 814 200 V262 Q814 282 834 282 H955" stroke="#8171C5"/>
+    </g>
+    <rect x="682" y="151" width="60" height="58" rx="12" fill="#6748FD"/>
+    <path d="M700 171 H724 M700 180 H724 M700 189 H714" fill="none" stroke="#FBFAFF" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="814" cy="180" r="6" fill="#FFBD9E"/>
+    <rect x="955" y="52" width="182" height="52" rx="10" fill="#25128A" stroke="#8171C5"/>
+    <rect x="955" y="154" width="182" height="52" rx="10" fill="#FFBD9E"/>
+    <rect x="955" y="256" width="182" height="52" rx="10" fill="#25128A" stroke="#8171C5"/>
+    <text x="976" y="84" fill="#DDD7FF" font-size="14">Candidate A</text>
+    <text x="976" y="186" fill="#150079" font-size="14" font-weight="700">Selected model</text>
+    <path d="M1103 179 L1108 184 L1117 174" fill="none" stroke="#150079" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="976" y="288" fill="#DDD7FF" font-size="14">Candidate C</text>
+  </g>
+</svg>

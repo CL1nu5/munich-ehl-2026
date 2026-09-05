@@ -1,0 +1,49 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="540" viewBox="0 0 940 540" font-family="Arial,Helvetica,sans-serif" role="img" aria-labelledby="title desc">
+<title id="title">Held-out cost–quality frontier</title>
+<desc id="desc">Saved hackathon evaluation on 198 trajectories. The selected router estimates 47.6% lower opening-input cost. Vertical lines show 95% bootstrap intervals; quality is a proxy. Plot coordinates are preserved from notebook 03.</desc>
+<rect width="940" height="540" fill="#FBFAFF"/>
+<text x="54" y="34" font-family="Inter,Arial,sans-serif" font-size="23" font-weight="700" fill="#150079">Held-out cost–quality frontier</text>
+<text x="54" y="58" font-size="15" fill="#6E6A82">198 held-out trajectories · vertical lines: 95% bootstrap intervals</text>
+<line x1="92" y1="468.0" x2="892" y2="468.0" stroke="#E4E0F2"/>
+<text x="80" y="473.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6E6A82">0.89</text>
+<line x1="92" y1="373.0" x2="892" y2="373.0" stroke="#E4E0F2"/>
+<text x="80" y="378.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6E6A82">0.92</text>
+<line x1="92" y1="278.0" x2="892" y2="278.0" stroke="#E4E0F2"/>
+<text x="80" y="283.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6E6A82">0.95</text>
+<line x1="92" y1="183.0" x2="892" y2="183.0" stroke="#E4E0F2"/>
+<text x="80" y="188.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6E6A82">0.97</text>
+<line x1="92" y1="88.0" x2="892" y2="88.0" stroke="#E4E0F2"/>
+<text x="80" y="93.0" text-anchor="end" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6E6A82">1.00</text>
+<polyline points="110.0,235.8 115.0,234.2 115.9,233.6 132.6,256.7 161.3,258.9 403.0,267.5 411.2,290.4 421.7,282.8 853.3,197.9" fill="none" stroke="#6748FD" stroke-width="3" opacity="0.7"/>
+<circle cx="357.7" cy="320.8" r="7" fill="#150079" stroke="#FBFAFF" stroke-width="2"/>
+<text x="369.7" y="310.8" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#150079">Logged route</text>
+<line x1="212.6" y1="227.9" x2="212.6" y2="432.2" stroke="#FFBD9E" opacity="0.45"/>
+<circle cx="212.6" cy="326.9" r="7" fill="#FFBD9E" stroke="#FBFAFF" stroke-width="2"/>
+<text x="224.6" y="316.9" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#A64D2C">15k heuristic</text>
+<line x1="853.3" y1="123.8" x2="853.3" y2="286.4" stroke="#6748FD" opacity="0.45"/>
+<circle cx="853.3" cy="197.9" r="5" fill="#6748FD" stroke="#FBFAFF" stroke-width="2"/>
+<line x1="421.7" y1="174.4" x2="421.7" y2="413.2" stroke="#6748FD" opacity="0.45"/>
+<circle cx="421.7" cy="282.8" r="5" fill="#6748FD" stroke="#FBFAFF" stroke-width="2"/>
+<line x1="411.2" y1="181.1" x2="411.2" y2="420.7" stroke="#6748FD" opacity="0.45"/>
+<circle cx="411.2" cy="290.4" r="5" fill="#6748FD" stroke="#FBFAFF" stroke-width="2"/>
+<line x1="403.0" y1="157.6" x2="403.0" y2="395.8" stroke="#6748FD" opacity="0.45"/>
+<circle cx="403.0" cy="267.5" r="5" fill="#6748FD" stroke="#FBFAFF" stroke-width="2"/>
+<line x1="161.3" y1="167.3" x2="161.3" y2="353.7" stroke="#6748FD" opacity="0.45"/>
+<circle cx="161.3" cy="258.9" r="5" fill="#6748FD" stroke="#FBFAFF" stroke-width="2"/>
+<line x1="132.6" y1="169.7" x2="132.6" y2="347.7" stroke="#6748FD" opacity="0.45"/>
+<circle cx="132.6" cy="256.7" r="10" fill="#6748FD" stroke="#FBFAFF" stroke-width="2"/>
+<text x="144.6" y="246.7" font-family="Inter,Arial,sans-serif" font-size="14" font-weight="700" fill="#6748FD">Selected learned router</text>
+<line x1="115.9" y1="146.7" x2="115.9" y2="337.0" stroke="#6748FD" opacity="0.45"/>
+<circle cx="115.9" cy="233.6" r="5" fill="#6748FD" stroke="#FBFAFF" stroke-width="2"/>
+<line x1="115.0" y1="146.9" x2="115.0" y2="338.0" stroke="#6748FD" opacity="0.45"/>
+<circle cx="115.0" cy="234.2" r="5" fill="#6748FD" stroke="#FBFAFF" stroke-width="2"/>
+<line x1="110.0" y1="148.0" x2="110.0" y2="339.7" stroke="#6748FD" opacity="0.45"/>
+<circle cx="110.0" cy="235.8" r="5" fill="#6748FD" stroke="#FBFAFF" stroke-width="2"/>
+<text x="92.0" y="493" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6E6A82">$5.6</text>
+<text x="292.0" y="493" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6E6A82">$10.9</text>
+<text x="492.0" y="493" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6E6A82">$16.3</text>
+<text x="692.0" y="493" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6E6A82">$21.7</text>
+<text x="892.0" y="493" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="13" fill="#6E6A82">$27.1</text>
+<text x="492.0" y="523" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18152B">Assumed opening-input cost</text>
+<text transform="translate(24 278.0) rotate(-90)" text-anchor="middle" font-family="Inter,Arial,sans-serif" font-size="14" fill="#18152B">Estimated quality proxy</text>
+</svg>

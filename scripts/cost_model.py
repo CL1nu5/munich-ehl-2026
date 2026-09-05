@@ -59,8 +59,9 @@ def shared_prefix_tokens(prev_req, req):
 def trajectory_cost(calls, route, pricing=None):
     """Cost of a reconstructed trajectory (calls ordered by input length) if call i
     had been served by route[i]. Cache-aware: the shared prefix is billed at the
-    cached rate only when route[i] == route[i-1]. Output tokens are unknowable
-    (no outputs in the export) and are NOT included — say so when you quote numbers.
+    cached rate only when route[i] == route[i-1]. Output tokens and tool schemas
+    are NOT included. Earlier outputs may be recoverable from later histories,
+    but this helper prices request-history input only.
     Returns (usd, uncached_input_tokens_est)."""
     pricing = pricing or load_pricing()
     usd, uncached_total = 0.0, 0

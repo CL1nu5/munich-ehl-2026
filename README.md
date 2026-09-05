@@ -1,90 +1,95 @@
-# Viktor model router
+![Viktor Router — model routing from offline agent traces. Munich EHL · TUM.ai · 2026.](docs/assets/header.svg)
 
-An offline, dependency-free model router for the TUM.ai Viktor Challenge. It
-reconstructs redacted request trajectories, learns a cache-aware routing policy,
-and evaluates that policy with explicit off-policy assumptions.
+[Results](#the-result) · [Try it](#try-it) · [How it works](docs/methodology.md) · [Reproduce the analysis](docs/reproducing.md)
 
-## What it does
+# Viktor Router
 
-Given the opening context of a request, the router estimates execution workload,
-execution risk, and expected outcome quality for supported model choices. It then
-selects the least expensive supported model within a validation-selected quality
-tolerance of the best predicted option.
+Which model does an agent actually need for a task?
 
-The pipeline is deliberately conservative:
+Built for the **Viktor Challenge at the Munich EHL hackathon**, this project routes
+an opening request to a model based on expected workload, execution risk, and
+cost. The interesting part was evaluating it: the logs only show what happened
+with the model that ran, and the final answers are missing.
 
-- Routing inputs use only information available before execution.
-- Collision-prone trajectory candidates are audited; ambiguous candidates stop
-  for manual review rather than being silently merged.
-- The logged model is treated as the factual treatment, never as a deployment
-  input.
-- Quality comparisons use a stabilized doubly robust off-policy estimate and
-  report overlap diagnostics.
+The result is a small, offline router and an evaluation that makes those gaps
+explicit. The routing and training code uses only the Python standard library.
 
-## Quick start
+## The result
 
-Use Python 3. The project uses only the standard library.
+The saved hackathon run estimated **47.6% lower opening-input cost** on 198 held-out
+trajectories. The estimated change in the quality proxy was **+0.0179**, with a
+95% interval of **[−0.0075, +0.0422]**. That interval includes both a small loss and
+a gain; it does not establish a quality improvement.
 
-1. Extract the supplied archives into `export/` so it contains
-   `trajectories_v1_*.jsonl` files.
-2. Run the pipeline from the repository root:
+![Cost–quality frontier from the saved hackathon evaluation, comparing the learned router, a 15k-token heuristic, and the logged route.](docs/assets/cost-quality-frontier.svg)
+
+<sub>Saved analysis: 1,000 requests, 991 usable quality labels, 198 test trajectories.
+Prices are assumptions; tokens are estimated. Cost covers opening input only,
+not the full task or output tokens. The effective overlap sample size is 54.2.</sub>
+
+The [evaluation notebook](notebooks/03_router_frontier_and_ope.ipynb) includes the
+frontier, weight-clipping checks, and sensitivity to the assumed model mappings.
+These are archived results, not a production benchmark.
+
+## How it works
+
+1. **Recover the task context.** Group requests by their opening messages and
+   audit collisions. Later request histories provide observable tool outcomes.
+2. **Predict workload and risk.** Two ridge-regression heads use only information
+   available at the opening decision: task text, context size, and available tools.
+3. **Choose a model.** Estimate quality for candidates with comparable historical
+   support. Pick the cheapest within a validation-selected tolerance of the best
+   prediction; use a fixed Sonnet fallback when none has support.
+4. **Check the trade-off.** Hold out entire task templates and compare policies
+   using a stabilized doubly robust estimate, bootstrap intervals, and overlap checks.
+
+The chosen model stays fixed for the trajectory. A separate cost model accounts
+for shared-prefix caching and the reset caused by switching models.
+[Method and limitations →](docs/methodology.md)
+
+## Try it
+
+From the repository root, with Python 3.10 or newer:
 
 ```bash
-python scripts/load_trajectories.py export/
-python scripts/audit_trajectory_groups.py export/
-python scripts/build_feature_table.py export/
-python scripts/build_evaluation_table.py export/
-python scripts/build_manual_review_sample.py export/
-python scripts/train_two_stage_router.py
-python scripts/two_stage_router.py
-python scripts/evaluate_two_stage_router.py
-python scripts/build_analysis_notebooks.py
+python3 scripts/route_request.py examples/request.json
 ```
 
-Generated tables, charts, and local evaluation artifacts are written to
-`results/`. They are intentionally ignored by Git.
+This runs the included trained router on a **synthetic request**. It prints the
+chosen model, predictions, and whether historical support or the fallback drove
+the decision. No dataset, package installation, or API key is needed. Small
+handwritten examples can fall outside the training data's support; the fallback
+is part of the policy.
 
-For a short offline replay of two held-out decisions:
+Edit [the example](examples/request.json) to try another opening request. No LLM
+is called and the request is not executed.
+
+To rebuild the experiment with an authorized copy of the challenge data:
 
 ```bash
-python scripts/demo_router.py --pause
+make pipeline
 ```
 
-## Repository layout
+See [reproduction instructions](docs/reproducing.md) for data layout, individual
+commands, and the difference between the saved results and a new run.
 
-| Path | Purpose |
-|---|---|
-| `scripts/load_trajectories.py` | Parses the export and reconstructs candidate trajectories from opening system and user context. |
-| `scripts/audit_trajectory_groups.py` | Splits demonstrable opening-context collisions and halts for ambiguous candidates. |
-| `scripts/build_feature_table.py` | Builds leakage-aware opening-context routing features. |
-| `scripts/build_evaluation_table.py` | Derives observable outcome proxies from recoverable history. |
-| `scripts/build_manual_review_sample.py` | Applies the fixed, chunk-scoped manual calibration sample. |
-| `scripts/train_two_stage_router.py` | Trains the workload, risk, quality, and routing policy models. |
-| `scripts/two_stage_router.py` | Produces a route for every corrected request. |
-| `scripts/evaluate_two_stage_router.py` | Builds the evaluator comparison, sensitivity tables, and frontier chart. |
-| `models/` | The router artifact and documented benchmark-capability priors. |
-| `notebooks/` | Pre-rendered analysis notebooks. |
+## Explore the project
 
-## Evaluation and limits
+| Start here | What it contains |
+| :--- | :--- |
+| [01 · Data and labels](notebooks/01_data_and_label_audit.ipynb) | Task mix, model coverage, and what can be judged from the logs |
+| [02 · Workload and quality](notebooks/02_complexity_and_quality_diagnostics.ipynb) | Prediction diagnostics and uncertainty |
+| [03 · Frontier and evaluation](notebooks/03_router_frontier_and_ope.ipynb) | Cost–quality trade-off and off-policy sensitivity |
+| [scripts/](scripts/) | Reconstruction, feature extraction, training, routing, and evaluation |
+| [models/](models/) | Saved router and the assumed capability profiles |
+| [docs/](docs/) | Method, reproduction notes, and README figures |
 
-The export contains no final responses, measured usage, timing, or randomized
-counterfactuals. Consequently:
+The notebooks include saved outputs for browsing without the data. The original
+challenge briefing lives in [AGENTS.md](AGENTS.md); `skills/` and `templates/`
+contain the supplied presentation and submission scaffolding.
 
-- Token counts are estimates based on serialized characters divided by four.
-- Cache savings are inferred from item-level shared input prefixes; they are not
-  provider-reported cached-token measurements.
-- Prices and cross-family capability priors are explicit public-analogue
-  assumptions. Replace them if organizers provide a price sheet.
-- Observable tool history is a quality proxy, not a semantic ground-truth label.
-- A quality delta is an off-policy estimate, not proof that a new route improves
-  outcomes.
+## Data
 
-Read the generated `results/two_stage_summary.md` and
-`results/evaluator_summary.md` alongside the frontier rather than quoting a
-single point estimate.
-
-## Data handling
-
-`export/` is challenge-use-only data. It is ignored by Git and must not be
-committed, uploaded, or redistributed. The pipeline reads it but never modifies
-it.
+The trajectory export is **challenge use only** and is not distributed here.
+Raw data belongs in `export/`; generated tables and local reports belong in
+`results/`. Both are ignored by Git. Neither should be uploaded or committed.

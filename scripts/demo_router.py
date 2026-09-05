@@ -34,6 +34,11 @@ CASES = [
 
 
 def read_by_id(path):
+    if not path.is_file():
+        raise SystemExit(
+            f"Missing {path.name}. Run 'make pipeline' with the challenge data first, "
+            "or 'make demo' for the synthetic example."
+        )
     with path.open(encoding="utf-8", newline="") as handle:
         return {row["trajectory_id"]: row for row in csv.DictReader(handle)}
 
@@ -78,7 +83,11 @@ def main():
     for index, case in enumerate(CASES):
         trajectory_id = case["trajectory_id"]
         if trajectory_id not in decisions or trajectory_id not in features:
-            raise SystemExit(f"demo row missing: {trajectory_id}")
+            raise SystemExit(
+                f"Original replay row missing: {trajectory_id}. The current export or "
+                "test split differs from the saved demo. Use 'make demo' for the "
+                "synthetic example."
+            )
         print_case(case, decisions[trajectory_id], features[trajectory_id])
         if args.pause and index == 0:
             input("\nPress Enter for the guardrail case…")

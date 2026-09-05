@@ -1,0 +1,15 @@
+{
+  "input": [
+    {
+      "type": "message",
+      "role": "system",
+      "content": "You help a small team organize its work."
+    },
+    {
+      "type": "message",
+      "role": "user",
+      "content": "Draft a short weekly status update: the prototype is ready, testing starts Monday, and the documentation still needs a review."
+    }
+  ],
+  "tools": []
+}
