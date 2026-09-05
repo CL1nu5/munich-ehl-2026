@@ -1,0 +1,1 @@
+This is a prject form the munich ehl hackathon. The project is over, but i want to have a clean look if someone looks at it in hindsight. therfore, coud you create a visually appreing readem, and clean up the whole mess. (make sure it doesnt look to ai)

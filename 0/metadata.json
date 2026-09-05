@@ -1,0 +1,61 @@
+{
+  "cli_version": "0.10.2",
+  "checkpoint_id": "01M1RSXET3248F0CWWWAXRKNY5",
+  "session_id": "01a07183-74fd-7133-9346-f922dac54514",
+  "strategy": "manual-commit",
+  "created_at": "2026-09-05T12:50:45.415297Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "save_step_count": 1,
+  "files_touched": [
+    ".gitignore",
+    "Makefile",
+    "README.md",
+    "docs/assets/cost-quality-frontier.svg",
+    "docs/assets/header.svg",
+    "docs/methodology.md",
+    "docs/reproducing.md",
+    "examples/request.json",
+    "scripts/analysis_notebook_utils.py",
+    "scripts/build_analysis_notebooks.py",
+    "scripts/cost_model.py",
+    "scripts/demo_router.py",
+    "scripts/route_request.py",
+    "scripts/train_two_stage_router.py"
+  ],
+  "agent": "Codex",
+  "model": "gpt-6-astra",
+  "turn_id": "b5b89847242c",
+  "compact_transcript_start": 0,
+  "token_usage": {
+    "input_tokens": 129270,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 3225226,
+    "output_tokens": 34113,
+    "api_call_count": 41
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-09-05T12:50:45.284004Z",
+    "agent_lines": 537,
+    "agent_removed": 83,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 537,
+    "total_lines_changed": 620,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
